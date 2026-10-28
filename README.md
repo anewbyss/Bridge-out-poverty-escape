@@ -63,6 +63,28 @@ npm test
 | `DB_FILE` | `data/bridge.db` | SQLite database file |
 | `SECURE_COOKIES` | off | Set to `1` when served over HTTPS |
 
+## Live lookup (Multnomah County + Portland daily-access area)
+
+When a live directory is connected, **every search pulls current listings** for the youth's needs. Only listings within a reasonable daily trip of Portland are kept: within **25 miles of downtown** by coordinates, or in a nearby city when a listing has no coordinates. That covers Portland, Gresham, Troutdale, Beaverton, Hillsboro, Forest Grove, Tigard, Lake Oswego, Milwaukie, Oregon City, Happy Valley, Wilsonville, Vancouver, Camas and similar cities.
+
+- **Saved into the directory:** live listings are stored like any other program (badge "Live · source", distance from downtown), so referrals, outcomes, barriers, verification and ☆ Favor all work on them. Staff-verified or edited listings are never overwritten.
+- **Who sees them:** youth in Multnomah, Washington, Clackamas or Clark County, or who skip the area question. Each need gets the top matches plus up to 2 of the best live listings.
+- **Fast and safe:** results are cached for 12 hours per need. If a directory is slow (over 4 seconds) or down, the search uses saved listings and the problem shows on the staff Resources tab.
+- **Full sync** runs at startup and every 12 hours, or on demand with **Sync live listings now**. Listings missing for 30 days are retired.
+
+Connect a source with environment variables:
+
+| Variable | Purpose |
+|---|---|
+| `HSDS_API_URL` | Base URL of any **Open Referral (HSDS)** API, the open standard for service directories (e.g. `https://example.org/api`). Calls `/services?search=…` |
+| `HSDS_API_KEY`, `HSDS_LABEL` | Optional key (sent as `x-api-key` and Bearer) and the name shown to youth |
+| `NDP_SEARCH_URL`, `NDP_API_KEY` | **211 National Data Platform** keyword search endpoint and subscription key, from apiportal.211.org |
+| `NDP_LOCATION` | Location sent to 211 (default `Portland, OR`) |
+| `ACCESS_RADIUS_MILES` | Daily-access radius (default 25) |
+| `LIVE_SYNC_HOURS` | Full sync interval (default 12) |
+
+**Getting data access:** 211info holds the most complete Portland-area database. It doesn't publish an open API; it shares data through partners (Connect Oregon / Unite Us) and the 211 National Data Platform. Contact 211info's resource team, or sign up at the 211 API portal. The 211 adapter follows the portal's keyword-search pattern but **has not been tested against the real API**; check field names once you have a key (the parser is in `server/live.js`). The Open Referral adapter follows the published HSDS standard.
+
 ## ⚠️ The starter directory must be verified
 
 `data/resources.seed.json` has about 80 real Portland-area, Oregon and national programs. It loads only once, into an empty database. **Every entry starts as "not yet verified"** and youth are told to call ahead. Programs, ages, hours and funding change often, especially rent and energy assistance. Before launch, a staff member should check each program on the **Resources** tab and click **Verified**. Phone numbers were only included where well known; most entries link to the program's website.
@@ -82,7 +104,7 @@ The starter list includes:
 ## Layout
 
 ```
-server/  index.js (entry) · app.js (routes) · matcher.js · store.js (DB ops + reports)
+server/  index.js (entry) · app.js (routes) · matcher.js · store.js (DB ops + reports) · live.js (live lookup)
          db.js (schema, seed) · taxonomy.js (all answer options) · validate.js · auth.js
 public/  index.html + intake.js · followup · directory · staff · common.js · styles.css
 data/    resources.seed.json

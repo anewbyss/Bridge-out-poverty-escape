@@ -106,7 +106,7 @@ const RESOURCE_LISTS = {
   categories: ID_SETS.needs,
   populations: T.ids(T.POPULATIONS),
   requires: T.ids(T.POPULATIONS),
-  counties: new Set([...ID_SETS.county, 'all']),
+  counties: new Set([...ID_SETS.county, 'all', T.ACCESS_AREA.id]),
   languages: ID_SETS.language,
   culturally_specific: ID_SETS.race,
   flags: new Set([...T.ids(T.PREFERENCES), ...T.ids(T.RESOURCE_FLAGS)]),

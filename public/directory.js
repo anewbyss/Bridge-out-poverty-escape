@@ -10,6 +10,7 @@
   const FOCUS = {
     dv: (r) => has(r.populations, 'dv') || has(r.requires, 'dv'),
     reentry: (r) => has(r.populations, 'reentry', 'justice') || has(r.requires, 'reentry', 'justice'),
+    live: (r) => String(r.source || '').startsWith('live:'),
     culturally_specific: (r) => r.culturally_specific?.length > 0 || has(r.flags, 'culturally_specific'),
     confidential: (r) => has(r.flags, 'confidential'),
     lgbtq: (r) => has(r.flags, 'lgbtq_affirming') || has(r.populations, 'lgbtq', 'trans'),
@@ -26,7 +27,8 @@
       (r) =>
         (!q || `${r.name} ${r.org || ''} ${r.description || ''}`.toLowerCase().includes(q)) &&
         (!need || r.categories.includes(need)) &&
-        (!county || r.counties.includes(county) || r.counties.includes('all')) &&
+        (!county || r.counties.includes(county) || r.counties.includes('all') ||
+          (r.counties.includes(T.ACCESS_AREA.id) && T.ACCESS_COUNTIES.includes(county))) &&
         (!age || (age >= r.age_min && age <= r.age_max)) &&
         (!focus || focus(r))
     );

@@ -319,7 +319,7 @@
   // ---------- Resources ----------
   const STALE_DAYS = 180;
   const isStale = (r) => !r.last_verified || (Date.now() - Date.parse(r.last_verified)) / 86400000 > STALE_DAYS;
-  let resFilter = { q: '', stale: false, inactive: false };
+  let resFilter = { q: '', stale: false, inactive: false, live: false };
 
   let allResources = [];
   async function loadResources() {
@@ -332,7 +332,8 @@
       (r) =>
         (!resFilter.q || `${r.name} ${r.org || ''}`.toLowerCase().includes(resFilter.q.toLowerCase())) &&
         (!resFilter.stale || isStale(r)) &&
-        (resFilter.inactive || r.active)
+        (resFilter.inactive || r.active) &&
+        (!resFilter.live || String(r.source).startsWith('live:'))
     );
     return shown.map((r) =>
       el('tr', {},
@@ -373,6 +374,60 @@
             }, 'Verified')))));
   }
 
+  let liveStatus = null;
+  let liveSyncNote = null; // survives the tab re-render after a sync
+  function livePanel() {
+    const box = el('section', { class: 'card' }, el('h3', {}, 'Live lookup'), el('p', { class: 'muted small' }, 'Loading…'));
+    const draw = (s) => {
+      liveStatus = s;
+      const msg = el('div', { 'aria-live': 'polite' }, liveSyncNote && el('div', { class: 'notice' }, liveSyncNote));
+      mount(box,
+        el('h3', {}, 'Live lookup'),
+        !s.enabled
+          ? el('p', { class: 'notice' }, 'Off. Connect a live directory (211 or an Open Referral feed) to pull current listings within the Portland daily-access area. See README → Live lookup.')
+          : [
+              el('p', { class: 'hint' },
+                `Every search pulls current listings within ${s.radiusMiles} miles of downtown Portland (refreshed at most every ${s.cacheHours} hours per need) and saves them here, so you can verify, favor, and track them. Listings missing for 30 days are retired.`),
+              el('div', { class: 'table-wrap' },
+                el('table', {},
+                  el('thead', {}, el('tr', {}, ['Source', 'Listings (active)', 'Last lookup', 'Problems'].map((h) => el('th', {}, h)))),
+                  el('tbody', {},
+                    s.providers.map((p) =>
+                      el('tr', {},
+                        el('td', {}, p.label),
+                        el('td', {}, `${p.listings} (${p.active})`),
+                        el('td', {}, p.lastFetch ? `${fmtDate(p.lastFetch)} ${p.lastFetch.slice(11, 16)} UTC` : 'Never'),
+                        el('td', { class: 'small' }, p.errors.length ? p.errors.slice(0, 3).map((e) => `${T.label.NEEDS[e.need] || e.need}: ${e.error}`).join('; ') : '—')))))),
+              el('div', { class: 'actions' },
+                el('button', {
+                  class: 'btn secondary', type: 'button',
+                  onclick: async (e) => {
+                    e.target.disabled = true;
+                    mount(msg, el('p', { class: 'muted' }, 'Syncing every need — this can take a minute…'));
+                    try {
+                      const r = await api('/api/staff/live/sync', { method: 'POST', body: {} });
+                      liveSyncNote =
+                        `${r.fetched} lookups, ${r.kept} program–need matches in the access area saved` +
+                        (r.retired != null ? `, ${r.retired} old listings retired` : '') +
+                        (r.errors.length ? `. ${r.errors.length} problems: ${r.errors.slice(0, 3).join('; ')}` : '.');
+                      liveStatus = null;
+                      await loadResources();
+                    } catch (err) {
+                      if (err.status === 401) return handleError(err);
+                      mount(msg, errorBox(err));
+                    } finally {
+                      e.target.disabled = false;
+                    }
+                  },
+                }, '↻ Sync live listings now'),
+                msg),
+            ]);
+    };
+    if (liveStatus) draw(liveStatus);
+    api('/api/staff/live').then(draw).catch(handleError);
+    return box;
+  }
+
   function renderResources() {
     const all = allResources;
     const tbody = el('tbody', {}, resourceRows());
@@ -410,6 +465,7 @@
     const staleCount = all.filter((r) => r.active && isStale(r)).length;
     const brokenCount = all.filter((r) => r.active && r.link_status && r.link_status !== 'ok').length;
     mount($('tab-resources'),
+      livePanel(),
       el('section', { class: 'card' },
         el('h3', {}, 'Keep the directory fresh'),
         el('p', { class: 'hint' }, 'Refresh adds programs from the built-in starter list that you don’t have yet. Import adds programs from a JSON file (same format as “Export resources”). Programs you have edited or verified are never overwritten.'),
@@ -432,6 +488,7 @@
         el('label', { class: 'grow' }, 'Search', el('input', { type: 'search', value: resFilter.q, oninput: (e) => ((resFilter.q = e.target.value), rerows()) })),
         el('label', { class: 'chip' }, el('input', { type: 'checkbox', checked: resFilter.stale, onchange: (e) => ((resFilter.stale = e.target.checked), rerows()) }), 'Needs verification'),
         el('label', { class: 'chip' }, el('input', { type: 'checkbox', checked: resFilter.inactive, onchange: (e) => ((resFilter.inactive = e.target.checked), rerows()) }), 'Show inactive'),
+        el('label', { class: 'chip' }, el('input', { type: 'checkbox', checked: resFilter.live, onchange: (e) => ((resFilter.live = e.target.checked), rerows()) }), 'Live listings only'),
         el('button', { class: 'btn', type: 'button', onclick: () => editResource(null) }, 'Add program')),
       el('div', { class: 'card table-wrap' },
         el('table', {},

@@ -46,8 +46,9 @@ function loadTaxonomy() {
   taxonomyPromise ||= api('/api/taxonomy').then((t) => {
     t.label = {};
     for (const [key, list] of Object.entries(t)) {
-      if (Array.isArray(list)) t.label[key] = Object.fromEntries(list.map((x) => [x.id, x.label]));
+      if (Array.isArray(list) && typeof list[0] === 'object') t.label[key] = Object.fromEntries(list.map((x) => [x.id, x.label]));
     }
+    t.label.COUNTIES[t.ACCESS_AREA.id] = t.ACCESS_AREA.label;
     return t;
   });
   return taxonomyPromise;
@@ -73,6 +74,7 @@ function resourceBadges(r) {
   const f = r.flags || [];
   return [
     r.crisis && el('span', { class: 'badge crisis' }, '24/7'),
+    String(r.source || '').startsWith('live:') && el('span', { class: 'badge live' }, `Live · ${r.live_provider || 'directory'}`),
     f.includes('partner') && el('span', { class: 'badge partner' }, '★ Partner'),
     f.includes('confidential') && el('span', { class: 'badge' }, 'Confidential'),
     !!(f.includes('culturally_specific') || r.culturally_specific?.length) && el('span', { class: 'badge' }, 'Culturally specific'),
@@ -89,6 +91,7 @@ function resourceCard(m) {
     el('p', {}, r.description),
     contactLine(r),
     r.hours ? el('p', { class: 'small muted' }, `Hours: ${r.hours}`) : null,
+    r.live_miles != null ? el('p', { class: 'small muted' }, `About ${r.live_miles} miles from downtown Portland`) : null,
     r.eligibility ? el('p', { class: 'small muted' }, `Who qualifies: ${r.eligibility}`) : null,
     m.reasons.length ? el('ul', { class: 'reasons' }, m.reasons.map((x) => el('li', {}, x))) : null,
     m.alsoHelpsWith.length ? el('p', { class: 'small muted' }, `Also helps with: ${m.alsoHelpsWith.join(', ')}`) : null,

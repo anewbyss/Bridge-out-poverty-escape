@@ -6,6 +6,8 @@ const T = require('./taxonomy');
 const db_ = require('./db');
 const store = require('./store');
 const { createAuth } = require('./auth');
+const { createLive } = require('./live');
+const { searchNeeds } = require('./matcher');
 const { validateIntake, validateOutcome, validateResource, ValidationError } = require('./validate');
 
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
@@ -101,10 +103,11 @@ const resultsPayload = (r) => ({
   usedDefaults: r.usedDefaults,
 });
 
-function createApp({ dbFile, staffPassword, sessionSecret, secureCookies = false, linkFetch = fetch }) {
+function createApp({ dbFile, staffPassword, sessionSecret, secureCookies = false, linkFetch = fetch, liveProviders = [], liveOptions = {} }) {
   const db = db_.open(dbFile);
   const seeded = db_.syncSeed(db);
   const auth = createAuth({ password: staffPassword, secret: sessionSecret });
+  const live = createLive(db, { providers: liveProviders, ...liveOptions });
 
   const routes = [];
   const route = (method, pattern, handler, { staff = false } = {}) => {
@@ -122,6 +125,9 @@ function createApp({ dbFile, staffPassword, sessionSecret, secureCookies = false
 
   route('POST', '/api/intake', async (req) => {
     const profile = validateIntake(await readJson(req));
+    // Pull fresh live listings for these needs first (cached; falls back to
+    // saved listings if a directory is slow or down).
+    if (live.enabled) await live.refreshNeeds(searchNeeds(profile));
     const source = auth.fromRequest(req) && req.headers['x-intake-source'] === 'staff' ? 'staff' : 'self';
     const r = store.createIntake(db, profile, { source });
     return resultsPayload(r);
@@ -134,6 +140,7 @@ function createApp({ dbFile, staffPassword, sessionSecret, secureCookies = false
     if (!client) throw new HttpError(404, 'Code not found');
     const { needs } = await readJson(req);
     const valid = needs == null ? null : validateIntake({ needs, consent: true }).needs;
+    if (live.enabled) await live.refreshNeeds(searchNeeds({ ...client, needs: valid && valid.length ? valid : client.needs }));
     return resultsPayload({ ...store.refreshSearch(db, client, { needs: valid && valid.length ? valid : null }), refCode: client.ref_code });
   });
 
@@ -247,6 +254,13 @@ function createApp({ dbFile, staffPassword, sessionSecret, secureCookies = false
     return db_.upsertResource(db, { ...existing, flags }, { edited: 1 });
   }, { staff: true });
 
+  route('GET', '/api/staff/live', () => live.status(), { staff: true });
+
+  route('POST', '/api/staff/live/sync', async () => {
+    if (!live.enabled) throw new HttpError(400, 'No live directory is set up. See README → Live lookup.');
+    return live.syncAll();
+  }, { staff: true });
+
   route('GET', '/api/staff/resources', () => {
     const stats = store.resourceStats(db);
     return db_.listResources(db, { includeInactive: true }).map((r) => ({ ...r, stats: stats[r.id] || null }));
@@ -315,7 +329,7 @@ function createApp({ dbFile, staffPassword, sessionSecret, secureCookies = false
     }
   }
 
-  return { handle, db, seeded };
+  return { handle, db, seeded, live };
 }
 
 module.exports = { createApp };

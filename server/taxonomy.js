@@ -17,6 +17,11 @@ const COUNTIES = [
   { id: 'other', label: 'Somewhere else (outside these areas)' },
 ];
 
+// Counties within a reasonable daily trip of Portland. Live listings are
+// limited to this area and offered to youth from these counties.
+const ACCESS_COUNTIES = ['multnomah', 'washington', 'clackamas', 'clark'];
+const ACCESS_AREA = { id: 'access_area', label: 'Portland daily-access area' };
+
 const RACE = [
   { id: 'native', label: 'American Indian, Alaska Native, or Indigenous' },
   { id: 'asian', label: 'Asian or Asian American' },
@@ -256,6 +261,8 @@ module.exports = {
   AGE_MIN,
   AGE_MAX,
   COUNTIES,
+  ACCESS_COUNTIES,
+  ACCESS_AREA,
   RACE,
   SEX,
   GENDER,

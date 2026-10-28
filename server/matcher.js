@@ -16,7 +16,7 @@ const AGE_TAGS = ['minor', 'young_adult'];
 // When someone skips the needs question we still show something useful: the
 // program's core housing-stability help.
 const DEFAULT_NEEDS = ['rent_assistance', 'utility_assistance', 'housing'];
-const countyLabel = Object.fromEntries(T.COUNTIES.map((c) => [c.id, c.label.split(' (')[0]]));
+const countyLabel = Object.fromEntries([...T.COUNTIES, T.ACCESS_AREA].map((c) => [c.id, c.label.split(' (')[0]]));
 
 const needLabel = Object.fromEntries(T.NEEDS.map((n) => [n.id, n.label]));
 const popLabel = Object.fromEntries(T.POPULATIONS.map((p) => [p.id, p.label]));
@@ -66,7 +66,8 @@ function isEligible(resource, p, tags) {
   if (!resource.active) return false;
   if (p.age != null && (p.age < resource.age_min || p.age > resource.age_max)) return false;
   const counties = resource.counties || [];
-  if (p.county && !counties.includes('all') && !counties.includes(p.county)) return false;
+  const reachable = counties.includes(T.ACCESS_AREA.id) && T.ACCESS_COUNTIES.includes(p.county);
+  if (p.county && !counties.includes('all') && !counties.includes(p.county) && !reachable) return false;
   const req = resource.requires || [];
   const have = p.age == null ? [...tags, ...AGE_TAGS] : tags;
   if (req.length && !req.some((t) => have.includes(t))) return false;
@@ -158,7 +159,15 @@ function scoreResource(resource, p, tags, needs, stats, now) {
   if (needs.includes('emergency_shelter') && resource.crisis) score += 5;
 
   const age = daysSince(resource.last_verified, now);
-  if (age == null) warnings.push('Details not yet verified by staff — call ahead');
+  const live = String(resource.source || '').startsWith('live:');
+  if (live) {
+    // Seen in a live lookup within the last week = current information.
+    const seen = daysSince(resource.live_seen_at, now);
+    if (seen != null && seen <= 7) score += 5;
+    reasons.push(`Current listing from ${resource.live_provider || 'a live directory'}`);
+    if (age == null) warnings.push('Listed by an outside directory — call to confirm details and who qualifies');
+  }
+  if (age == null && !live) warnings.push('Details not yet verified by staff — call ahead');
   else if (age <= STALE_DAYS) score += 5;
   else {
     score -= 5;
@@ -197,11 +206,22 @@ function scoreResource(resource, p, tags, needs, stats, now) {
   return { score, matchedNeeds, reasons, warnings };
 }
 
+const LIVE_SLOTS = 2;
+const isLive = (m) => String(m.resource.source || '').startsWith('live:');
+// Top results, plus room for the best current live listings so they are never
+// crowded out entirely by the starter directory.
+function withLiveSlots(sorted) {
+  const top = sorted.slice(0, MAX_PER_NEED);
+  const missing = LIVE_SLOTS - top.filter(isLive).length;
+  if (missing > 0) top.push(...sorted.slice(MAX_PER_NEED).filter(isLive).slice(0, missing));
+  return top;
+}
+
 function summarize(resource) {
   const { id, name, org, description, phone, text, website, address, hours, eligibility, crisis, last_verified, flags,
-    counties, age_min, age_max, culturally_specific } = resource;
+    counties, age_min, age_max, culturally_specific, source, live_provider, live_miles } = resource;
   return { id, name, org, description, phone, text, website, address, hours, eligibility, crisis, last_verified, flags,
-    counties, age_min, age_max, culturally_specific };
+    counties, age_min, age_max, culturally_specific, source, live_provider, live_miles };
 }
 
 /**
@@ -238,7 +258,7 @@ function match(profile, resources, stats = {}, now = Date.now()) {
       label: needLabel[need] || need,
       implied: implied.includes(need),
       defaulted: usedDefaults && DEFAULT_NEEDS.includes(need),
-      matches: matches.slice(0, MAX_PER_NEED).map((m) => ({
+      matches: withLiveSlots(matches).map((m) => ({
         resource: summarize(m.resource),
         score: m.score,
         reasons: m.reasons,
@@ -264,4 +284,7 @@ function match(profile, resources, stats = {}, now = Date.now()) {
   return { tags, impliedNeeds: implied, usedDefaults, needs, crisis, byNeed, unmetNeeds: unmet };
 }
 
-module.exports = { match, deriveTags, impliedNeeds, isEligible, STALE_DAYS, DEFAULT_NEEDS };
+// Every need a search will cover (explicit + implied + defaults).
+const searchNeeds = (p) => [...new Set([...impliedNeeds(p), ...(p.needs || [])])];
+
+module.exports = { searchNeeds, match, deriveTags, impliedNeeds, isEligible, STALE_DAYS, DEFAULT_NEEDS };
