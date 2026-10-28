@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Check In — Bridge Out of Poverty</title>
+  <meta name="robots" content="noindex">
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/common.js" defer></script>
+  <script src="/followup.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/">Bridge <span>Out of Poverty</span></a>
+    <nav>
+      <a href="/">Find help</a>
+      <a href="/followup" aria-current="page">Check in</a>
+      <a href="/directory">All resources</a>
+    </nav>
+    <button class="quick-exit" type="button" title="Leave this site fast (Shift+Esc)">Quick exit</button>
+  </header>
+  <div class="crisis-strip">In danger right now? Call <a href="tel:911">911</a>. Want to talk to someone? Call or text <a href="tel:988">988</a>, any time.</div>
+
+  <main>
+    <section class="card">
+      <h1>How did it go?</h1>
+      <p>Enter the code you got when you searched. Tell us what happened with each program — good or bad. It helps us send the next person to places that actually work.</p>
+      <form id="lookup" class="toolbar">
+        <label class="grow">Your code
+          <input type="text" name="code" id="code" placeholder="ABCD-2345" autocomplete="off" autocapitalize="characters" required>
+        </label>
+        <button class="btn" type="submit">Look up</button>
+      </form>
+      <div id="lookupError"></div>
+    </section>
+    <section id="referrals"></section>
+  </main>
+</body>
+</html>

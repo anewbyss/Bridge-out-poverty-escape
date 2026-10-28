@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>All Resources — Bridge Out of Poverty</title>
+  <meta name="robots" content="noindex">
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/common.js" defer></script>
+  <script src="/directory.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/">Bridge <span>Out of Poverty</span></a>
+    <nav>
+      <a href="/">Find help</a>
+      <a href="/followup">Check in</a>
+      <a href="/directory" aria-current="page">All resources</a>
+    </nav>
+    <button class="quick-exit" type="button" title="Leave this site fast (Shift+Esc)">Quick exit</button>
+  </header>
+  <div class="crisis-strip">In danger right now? Call <a href="tel:911">911</a>. Want to talk to someone? Call or text <a href="tel:988">988</a>, any time.</div>
+
+  <main>
+    <h1>All resources</h1>
+    <p class="muted">Browse every program in our directory. For matches picked for you, <a href="/">answer a few questions</a>.</p>
+    <div class="card toolbar" id="filters">
+      <label class="grow">Search <input type="search" id="q" placeholder="Name or keyword"></label>
+      <label>Need <select id="need"><option value="">Any</option></select></label>
+      <label>Area <select id="county"><option value="">Any</option></select></label>
+      <label>Age <input type="number" id="age" min="9" max="26" placeholder="Any"></label>
+    </div>
+    <p id="count" class="muted small" aria-live="polite"></p>
+    <div id="list"></div>
+  </main>
+</body>
+</html>
