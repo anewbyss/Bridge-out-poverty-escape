@@ -32,7 +32,10 @@ function deriveTags(p) {
   if (gender.some((g) => TRANS_GENDERS.has(g))) tags.add('trans');
   const family = p.family || [];
   if (family.includes('foster_care') || family.includes('aged_out')) tags.add('foster');
-  if (family.includes('has_children') || family.includes('pregnant')) tags.add('parenting');
+  const members = (p.household && p.household.members) || [];
+  if (family.includes('has_children') || family.includes('pregnant') || members.includes('child') || members.includes('pregnant'))
+    tags.add('parenting');
+  if ((p.household && p.household.flags || []).includes('unsafe_member')) tags.add('dv');
   if (UNHOUSED.has(p.housing)) tags.add('unhoused');
   for (const r of p.race || []) if (RACE_TAGS.has(r)) tags.add(r);
   const v = p.vulnerabilities || [];
@@ -55,8 +58,13 @@ function impliedNeeds(p) {
   if (p.housing === 'at_risk') out.add('rent_assistance');
   if (v.includes('dv') || v.includes('trafficking') || v.includes('abuse_minor')) out.add('safety');
   if (v.includes('self_harm') || v.includes('unsafe_now')) out.add('crisis');
+  if ((p.household && p.household.flags || []).includes('unsafe_member')) out.add('safety');
+  // Missing core IDs (from the documents question) means ID help is a need.
+  const have = p.documents || [];
+  if (v.includes('no_id') || have.includes('none') || (have.length && ['birth_cert', 'ssn_card', 'state_id'].some((d) => !have.includes(d))))
+    out.add('id_documents');
   for (const n of p.needs || []) out.delete(n);
-  if (!(p.needs || []).length && !out.size) for (const n of DEFAULT_NEEDS) out.add(n);
+  if (!(p.needs || []).length && ![...out].some((n) => n !== 'id_documents')) for (const n of DEFAULT_NEEDS) out.add(n);
   return [...out];
 }
 
@@ -148,6 +156,17 @@ function scoreResource(resource, p, tags, needs, stats, now) {
   if (resource.link_status && resource.link_status !== 'ok') {
     score -= 3;
     warnings.push('Website didn’t load last time we checked — try calling');
+  }
+
+  // Housing for a household: youth-only programs may not take the others.
+  const hh = p.household || {};
+  if (hh.for === 'others' && flags.has('youth_only') && resource.categories.some((c) => c === 'emergency_shelter' || c === 'housing')) {
+    warnings.push(`Youth-only program — ask whether ${hh.size ? `all ${hh.size} of you` : 'your household'} can stay together`);
+    if ((hh.flags || []).includes('together')) score -= 6;
+  }
+  if ((hh.members || []).includes('child') && resource.populations?.includes('parenting')) {
+    score += 6;
+    reasons.push('Serves families with children');
   }
 
   if (flags.has('youth_only')) score += 5;

@@ -73,6 +73,49 @@ const FAMILY = [
   { id: 'caregiver', label: 'I care for a sibling or family member' },
 ];
 
+// "How many people will you be looking for housing for?" and the follow-up
+// questions shown when the answer is more than just the youth.
+const HOUSEHOLD_FOR = [
+  { id: 'self', label: 'Just me' },
+  { id: 'others', label: 'Me and other people' },
+];
+
+const HOUSEHOLD_MEMBERS = [
+  { id: 'child', label: 'My child or children' },
+  { id: 'pregnant', label: 'Someone who is pregnant (me or a partner)' },
+  { id: 'partner', label: 'A partner' },
+  { id: 'sibling', label: 'Brother(s) or sister(s) I take care of' },
+  { id: 'adult_relative', label: 'A parent or other adult relative' },
+  { id: 'friend', label: 'A friend' },
+];
+
+const CHILD_AGES = [
+  { id: 'under_1', label: 'Under 1' },
+  { id: '1_4', label: '1–4' },
+  { id: '5_12', label: '5–12' },
+  { id: '13_17', label: '13–17' },
+];
+
+const HOUSEHOLD_FLAGS = [
+  { id: 'together', label: 'We need to stay together' },
+  { id: 'disability', label: 'Someone has a disability or medical need' },
+  { id: 'pets', label: 'We have a pet or service animal' },
+  { id: 'unsafe_member', label: 'Someone I’m with makes me feel unsafe' },
+];
+
+// Documents the youth has now. Missing ones drive the "Getting your
+// documents" guide (server/documents.js).
+const DOCUMENTS = [
+  { id: 'state_id', label: 'State ID or driver’s license' },
+  { id: 'birth_cert', label: 'Birth certificate' },
+  { id: 'ssn_card', label: 'Social Security card' },
+  { id: 'proof_address', label: 'Proof of address (or a mailing address)' },
+  { id: 'insurance', label: 'OHP / health insurance card' },
+  { id: 'school_records', label: 'School records, diploma, or GED' },
+  { id: 'immigration', label: 'Immigration papers (if they apply to me)' },
+  { id: 'none', label: 'None of these / not sure' },
+];
+
 const INCOME = [
   { id: 'none', label: 'No income right now' },
   { id: 'under_1000', label: 'Less than $1,000 / month' },
@@ -268,6 +311,11 @@ module.exports = {
   GENDER,
   LGBTQ,
   FAMILY,
+  HOUSEHOLD_FOR,
+  HOUSEHOLD_MEMBERS,
+  CHILD_AGES,
+  HOUSEHOLD_FLAGS,
+  DOCUMENTS,
   INCOME,
   INCOME_SOURCES,
   HOUSING,

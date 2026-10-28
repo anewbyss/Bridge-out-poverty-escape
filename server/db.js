@@ -9,7 +9,7 @@ const SEED_FILE = path.join(__dirname, '..', 'data', 'resources.seed.json');
 // Columns stored as JSON text. Everything that reads or writes these goes
 // through toRow/fromRow so callers only ever see arrays.
 const RESOURCE_JSON = ['categories', 'populations', 'requires', 'counties', 'languages', 'culturally_specific', 'flags'];
-const CLIENT_JSON = ['race', 'gender', 'family', 'income_sources', 'vulnerabilities', 'needs', 'preferences', 'tags'];
+const CLIENT_JSON = ['race', 'gender', 'family', 'income_sources', 'vulnerabilities', 'needs', 'preferences', 'tags', 'household', 'documents'];
 
 const SCHEMA = `
 PRAGMA journal_mode = WAL;
@@ -132,7 +132,7 @@ function parseJson(value, fallback) {
 function fromRow(row, jsonCols) {
   if (!row) return row;
   const out = { ...row };
-  for (const col of jsonCols) if (col in out) out[col] = parseJson(out[col], []);
+  for (const col of jsonCols) if (col in out) out[col] = parseJson(out[col], col === 'household' ? {} : []);
   return out;
 }
 
@@ -194,7 +194,11 @@ const ADDED_COLUMNS = {
     page_hash: 'TEXT',
     page_changed_at: 'TEXT',
   },
-  clients: { confidential: 'INTEGER NOT NULL DEFAULT 0' },
+  clients: {
+    confidential: 'INTEGER NOT NULL DEFAULT 0',
+    household: "TEXT NOT NULL DEFAULT '{}'",
+    documents: "TEXT NOT NULL DEFAULT '[]'",
+  },
   referrals: { validated_at: 'TEXT', validated_by: 'TEXT', validation_note: 'TEXT' },
 };
 

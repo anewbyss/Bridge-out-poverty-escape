@@ -17,7 +17,7 @@ const OUT = path.resolve(process.argv[2] || path.join(ROOT, 'site'));
 const PAGES = ['index.html', 'followup.html', 'directory.html', 'staff.html'];
 
 const MODULES = [
-  'server/taxonomy', 'server/matcher', 'server/validate', 'server/db', 'server/store',
+  'server/taxonomy', 'server/matcher', 'server/documents', 'server/validate', 'server/db', 'server/store',
   'server/live', 'server/discovery', 'server/app', 'mobile/auth', 'mobile/shims',
 ];
 const BUILTINS = {

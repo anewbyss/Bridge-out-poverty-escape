@@ -68,6 +68,29 @@
       },
     },
     {
+      title: 'Who you’re housing',
+      render: () => [
+        el('h2', {}, 'Who are you looking for housing for?'),
+        field('How many people will you be looking for housing for?', 'Shelters and housing programs need to know who’s coming with you.',
+          chips('hh_for', T.HOUSEHOLD_FOR, 'radio')),
+        el('div', { id: 'hh-more', class: 'hidden' },
+          el('div', { class: 'row' },
+            el('div', {},
+              el('label', { class: 'label', for: 'f-hh_size' }, 'How many people in total, including you?'),
+              el('input', { type: 'number', name: 'hh_size', id: 'f-hh_size', min: 2, max: 20, inputmode: 'numeric' }))),
+          el('br'),
+          field('Who is with you?', 'Pick all that apply.', chips('hh_members', T.HOUSEHOLD_MEMBERS)),
+          el('div', { id: 'hh-kids', class: 'hidden' },
+            field('How old are the children?', 'Pick all that apply. Some shelters and programs depend on children’s ages.', chips('hh_child_ages', T.CHILD_AGES))),
+          field('Anything else we should know about your household?', 'Pick any that apply.', chips('hh_flags', T.HOUSEHOLD_FLAGS)),
+          el('div', { id: 'hh-unsafe', class: 'notice hidden' },
+            'You deserve to be safe. You can talk to someone confidentially, any time: Call to Safety ',
+            el('a', { href: 'tel:5032355333' }, '503-235-5333'),
+            ' or the National Domestic Violence Hotline — text START to 88788. We’ll show safety programs in your results.')),
+      ],
+      check: (v) => (v.household.size && (v.household.size < 2 || v.household.size > 20) ? ['Number of people should be between 2 and 20.'] : []),
+    },
+    {
       title: 'Who you are',
       render: () => [
         el('h2', {}, 'Who you are'),
@@ -83,11 +106,6 @@
       render: () => [
         el('h2', {}, 'Family & money'),
         field('Family situation', 'Pick all that apply.', chips('family', T.FAMILY)),
-        el('div', { class: 'row' },
-          el('div', {},
-            el('label', { class: 'label', for: 'f-household_size' }, 'How many people live with you (including you)?'),
-            el('input', { type: 'number', name: 'household_size', id: 'f-household_size', min: 1, max: 20, inputmode: 'numeric' }))),
-        el('br'),
         field('Your income', 'Your own or your household’s, whichever you know.', chips('income', T.INCOME, 'radio')),
         field('Where does money come from?', 'Pick all that apply.', chips('income_sources', T.INCOME_SOURCES)),
       ],
@@ -114,6 +132,8 @@
       render: () => [
         el('h2', {}, 'What do you need help with?'),
         field('Pick everything that would help', 'If you skip this, we’ll show our main housing, rent, and utility help.', groupedChips('needs', T.NEEDS)),
+        field('Which of these documents do you have right now?', 'We’ll make a step-by-step plan for any you’re missing — based on your age, area, and situation.',
+          chips('documents', T.DOCUMENTS)),
         field('What matters to you in a program?', 'Optional — we’ll put programs like this first.', chips('preferences', T.PREFERENCES)),
         el('label', { class: 'label', for: 'f-notes' }, 'Anything else you want us to know? (optional)'),
         el('textarea', { name: 'notes', id: 'f-notes', maxlength: 2000 }),
@@ -180,7 +200,7 @@
 
   // Quick search asks only the basics; full search asks everything. Every
   // question is optional either way, and "Skip to the end" is always there.
-  const QUICK = [0, 5, 6];
+  const QUICK = [0, 1, 6, 7];
   let order = steps.map((_, i) => i);
   let pos = 0;
   let current = 0;
@@ -220,7 +240,8 @@
       gender: many('gender'),
       lgbtq: one('lgbtq'),
       family: many('family'),
-      household_size: num('household_size'),
+      household: household(fd),
+      documents: many('documents'),
       income: one('income'),
       income_sources: many('income_sources'),
       housing: one('housing'),
@@ -237,6 +258,37 @@
       contact_value: one('contact_value'),
     };
   }
+
+  function household(fd) {
+    const f = fd.get('hh_for');
+    if (!f) return {};
+    if (f === 'self') return { for: 'self', size: 1 };
+    const size = Number(fd.get('hh_size')) || null;
+    return {
+      for: 'others',
+      size,
+      members: fd.getAll('hh_members'),
+      child_ages: fd.getAll('hh_child_ages'),
+      flags: fd.getAll('hh_flags'),
+    };
+  }
+
+  // The household switch: follow-up questions appear only when someone is
+  // looking for housing for more than themselves.
+  const syncHousehold = () => {
+    const others = form.querySelector('input[name=hh_for][value=others]').checked;
+    document.getElementById('hh-more').classList.toggle('hidden', !others);
+    document.getElementById('hh-kids').classList.toggle('hidden', !form.querySelector('input[name=hh_members][value=child]').checked);
+    document.getElementById('hh-unsafe').classList.toggle('hidden', !form.querySelector('input[name=hh_flags][value=unsafe_member]').checked);
+  };
+  form.addEventListener('change', (e) => {
+    if (/^hh_/.test(e.target.name)) syncHousehold();
+    // "None of these" and specific documents are mutually exclusive.
+    if (e.target.name === 'documents' && e.target.checked) {
+      for (const d of form.querySelectorAll('input[name=documents]'))
+        if ((e.target.value === 'none') !== (d.value === 'none')) d.checked = false;
+    }
+  });
 
   function showErrors(list) {
     mount(errorsEl, el('div', { class: 'errors', role: 'alert' }, el('ul', {}, list.map((e) => el('li', {}, e)))));

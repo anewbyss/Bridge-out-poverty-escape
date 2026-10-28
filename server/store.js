@@ -3,6 +3,7 @@
 const crypto = require('node:crypto');
 const T = require('./taxonomy');
 const { match, deriveTags } = require('./matcher');
+const { missingDocuments } = require('./documents');
 const { listResources, fromRow, parseJson, CLIENT_JSON } = require('./db');
 
 const FINAL = new Set(T.OUTCOMES.filter((o) => o.final).map((o) => o.id));
@@ -109,9 +110,9 @@ function createIntake(db, profile, { source = 'self' } = {}) {
     const cols = [
       'ref_code', 'source', 'confidential', 'age', 'county', 'zip', 'race', 'sex', 'gender', 'lgbtq', 'family', 'household_size',
       'income', 'income_sources', 'housing', 'education', 'employment', 'vulnerabilities', 'needs', 'preferences',
-      'language', 'tags', 'notes', 'contact_ok', 'contact_method', 'contact_value',
+      'language', 'tags', 'notes', 'contact_ok', 'contact_method', 'contact_value', 'household', 'documents',
     ];
-    const values = cols.map((c) => (CLIENT_JSON.includes(c) ? JSON.stringify(row[c] || []) : row[c] ?? null));
+    const values = cols.map((c) => (CLIENT_JSON.includes(c) ? JSON.stringify(row[c] || (c === 'household' ? {} : [])) : row[c] ?? null));
     const res = db
       .prepare(`INSERT INTO clients (${cols.join(', ')}) VALUES (${cols.map(() => '?').join(', ')})`)
       .run(...values);
@@ -271,7 +272,7 @@ function dashboard(db, { from, to, county } = {}) {
     .all(...args);
 
   const clientById = new Map(clients.map((c) => [c.id, c]));
-  const demo = { age: {}, county: {}, race: {}, gender: {}, lgbtq: {}, housing: {}, income: {}, education: {}, employment: {}, family: {}, vulnerabilities: {}, tags: {} };
+  const demo = { age: {}, county: {}, race: {}, gender: {}, lgbtq: {}, housing: {}, income: {}, education: {}, employment: {}, family: {}, vulnerabilities: {}, tags: {}, household: {}, householdMembers: {}, documentsMissing: {} };
   for (const c of clients) {
     bump(demo.age, ageBand(c.age));
     bump(demo.county, c.county || 'unknown');
@@ -285,6 +286,10 @@ function dashboard(db, { from, to, county } = {}) {
     for (const f of c.family) bump(demo.family, f);
     for (const v of c.vulnerabilities) bump(demo.vulnerabilities, v);
     for (const t of c.tags) bump(demo.tags, t);
+    const hh = c.household || {};
+    bump(demo.household, hh.for === 'self' ? 'Just me' : hh.for === 'others' ? (hh.size ? `${hh.size} people` : 'With others') : 'unknown');
+    for (const m of hh.members || []) bump(demo.householdMembers, m);
+    for (const d of missingDocuments(c)) bump(demo.documentsMissing, d);
   }
 
   const needs = {};
