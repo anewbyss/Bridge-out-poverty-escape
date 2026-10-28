@@ -1,0 +1,20 @@
+{
+  "name": "bridge-out-of-poverty",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Matches youth ages 9–26 in the Portland area with housing, rent, utility, and other services, and tracks outcomes and barriers.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning server/index.js",
+    "dev": "node --disable-warning=ExperimentalWarning --watch server/index.js",
+    "test": "node --disable-warning=ExperimentalWarning --test test/*.test.js",
+    "build:mobile": "node scripts/build-mobile.js",
+    "publish:data": "node --disable-warning=ExperimentalWarning scripts/publish-data.js"
+  },
+  "devDependencies": {
+    "sql.js": "^1.12.0"
+  }
+}

@@ -1,0 +1,10 @@
+/* Phone-app adjustments: respect the iPhone notch and home indicator. */
+.topbar { padding-top: max(10px, env(safe-area-inset-top)); padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
+main { padding-bottom: max(64px, calc(env(safe-area-inset-bottom) + 32px)); }
+.btn, .chip, .tabs button { min-height: 44px; }
+.tabs { overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; }
+.tabs button { white-space: nowrap; }
+@media (max-width: 600px) {
+  .actions .btn { flex: 1 1 auto; }
+  dialog { max-height: calc(100dvh - 24px); overflow: auto; }
+}

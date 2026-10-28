@@ -1,0 +1,2341 @@
+[
+  {
+    "id": "211info",
+    "name": "211info",
+    "org": "211info",
+    "description": "Free, confidential help line for Oregon and SW Washington. Connects people to current rent, utility, shelter, food, and other programs — including assistance funds that open and close throughout the year.",
+    "categories": [
+      "rent_assistance",
+      "utility_assistance",
+      "eviction_help",
+      "emergency_shelter",
+      "housing",
+      "food",
+      "basic_needs",
+      "transportation",
+      "health",
+      "parenting"
+    ],
+    "counties": [
+      "multnomah",
+      "washington",
+      "clackamas",
+      "clark",
+      "columbia",
+      "yamhill",
+      "other"
+    ],
+    "age_min": 9,
+    "age_max": 26,
+    "phone": "211",
+    "text": "Text your ZIP code to 898211",
+    "website": "https://www.211info.org",
+    "hours": "Phone 24/7; text and chat hours vary",
+    "languages": [
+      "en",
+      "es",
+      "other"
+    ],
+    "flags": [
+      "text_chat",
+      "online",
+      "confidential",
+      "general"
+    ]
+  },
+  {
+    "id": "988-lifeline",
+    "name": "988 Suicide & Crisis Lifeline",
+    "org": "988 Lifeline",
+    "description": "Call, text, or chat 988 any time to talk with a trained crisis counselor about suicidal thoughts, emotional distress, or a mental health or substance use crisis. Press 3 or text PRIDE for LGBTQIA2S+ counselors where available.",
+    "categories": [
+      "crisis",
+      "mental_health"
+    ],
+    "counties": [
+      "all"
+    ],
+    "age_min": 9,
+    "age_max": 26,
+    "phone": "988",
+    "text": "Text 988",
+    "website": "https://988lifeline.org",
+    "hours": "24/7",
+    "crisis": true,
+    "languages": [
+      "en",
+      "es",
+      "other"
+    ],
+    "flags": [
+      "text_chat",
+      "confidential",
+      "lgbtq_affirming"
+    ]
+  },
+  {
+    "id": "national-runaway-safeline",
+    "name": "National Runaway Safeline",
+    "org": "National Runaway Safeline",
+    "description": "Confidential support for young people who have run away, are thinking about it, or are homeless or in crisis. Can help with safe transportation home through Home Free and connect to local shelter.",
+    "categories": [
+      "crisis",
+      "safety",
+      "emergency_shelter",
+      "transportation"
+    ],
+    "populations": [
+      "unhoused",
+      "minor"
+    ],
+    "counties": [
+      "all"
+    ],
+    "age_min": 9,
+    "age_max": 21,
+    "phone": "1-800-786-2929",
+    "website": "https://www.1800runaway.org",
+    "hours": "24/7",
+    "crisis": true,
+    "flags": [
+      "text_chat",
+      "confidential",
+      "no_police",
+      "youth_only"
+    ]
+  },
+  {
+    "id": "trevor-project",
+    "name": "The Trevor Project",
+    "org": "The Trevor Project",
+    "description": "Crisis counseling and suicide prevention for LGBTQIA2S+ young people, by phone, text, or chat. Also runs TrevorSpace, an online peer community.",
+    "categories": [
+      "crisis",
+      "mental_health",
+      "lgbtq_support"
+    ],
+    "populations": [
+      "lgbtq",
+      "trans"
+    ],
+    "counties": [
+      "all"
+    ],
+    "age_min": 9,
+    "age_max": 24,
+    "phone": "1-866-488-7386",
+    "text": "Text START to 678-678",
+    "website": "https://www.thetrevorproject.org",
+    "hours": "24/7",
+    "crisis": true,
+    "flags": [
+      "text_chat",
+      "confidential",
+      "lgbtq_affirming",
+      "youth_only",
+      "no_police"
+    ]
+  },
+  {
+    "id": "trans-lifeline",
+    "name": "Trans Lifeline",
+    "org": "Trans Lifeline",
+    "description": "Peer support hotline run by and for trans people. Also offers microgrants for name changes and ID updates.",
+    "categories": [
+      "crisis",
+      "mental_health",
+      "lgbtq_support",
+      "id_documents"
+    ],
+    "populations": [
+      "trans"
+    ],
+    "requires": [
+      "trans",
+      "lgbtq"
+    ],
+    "counties": [
+      "all"
+    ],
+    "age_min": 9,
+    "age_max": 26,
+    "phone": "1-877-565-8860",
+    "website": "https://translifeline.org",
+    "hours": "Hours vary — check website",
+    "crisis": true,
+    "flags": [
+      "confidential",
+      "lgbtq_affirming",
+      "no_police"
+    ]
+  },
+  {
+    "id": "oregon-youthline",
+    "name": "Oregon YouthLine",
+    "org": "Lines for Life",
+    "description": "Teen-to-teen crisis and peer support line. Youth answer calls, texts, and chats in the afternoons/evenings, with adult counselors available at all other times.",
+    "categories": [
+      "crisis",
+      "mental_health",
+      "mentoring"
+    ],
+    "counties": [
+      "multnomah",
+      "washington",
+      "clackamas",
+      "columbia",
+      "yamhill"
+    ],
+    "age_min": 9,
+    "age_max": 21,
+    "phone": "1-877-968-8491",
+    "text": "Text teen2teen to 839863",
+    "website": "https://oregonyouthline.org",
+    "hours": "24/7 (peer hours vary)",
+    "crisis": true,
+    "flags": [
+      "text_chat",
+      "confidential",
+      "youth_only"
+    ]
+  },
+  {
+    "id": "oregon-child-abuse-hotline",
+    "name": "Oregon Child Abuse Hotline",
+    "org": "Oregon Department of Human Services",
+    "description": "Report abuse or neglect of anyone under 18, including yourself. Trained screeners decide next steps to keep kids safe.",
+    "categories": [
+      "safety",
+      "crisis"
+    ],
+    "populations": [
+      "minor"
+    ],
+    "requires": [
+      "minor"
+    ],
+    "counties": [
+      "multnomah",
+      "washington",
+      "clackamas",
+      "columbia",
+      "yamhill"
+    ],
+    "age_min": 9,
+    "age_max": 17,
+    "phone": "1-855-503-7233",
+    "website": "https://www.oregon.gov/odhs/report-abuse/pages/default.aspx",
+    "hours": "24/7",
+    "crisis": true
+  },
+  {
+    "id": "trafficking-hotline",
+    "name": "National Human Trafficking Hotline",
+    "org": "Polaris",
+    "description": "Confidential help for anyone being forced or pressured into sex, work, or other acts — or anyone worried someone else is.",
+    "categories": [
+      "safety",
+      "crisis"
+    ],
+    "populations": [
+      "trafficking"
+    ],
+    "counties": [
+      "all"
+    ],
+    "age_min": 9,
+    "age_max": 26,
+    "phone": "1-888-373-7888",
+    "text": "Text 233733",
+    "website": "https://humantraffickinghotline.org",
+    "hours": "24/7",
+    "crisis": true,
+    "languages": [
+      "en",
+      "es",
+      "other"
+    ],
+    "flags": [
+      "text_chat",
+      "confidential"
+    ]
+  },
+  {
+    "id": "call-to-safety",
+    "name": "Call to Safety",
+    "org": "Call to Safety",
+    "description": "24-hour crisis line for survivors of domestic violence, sexual assault, and dating violence in the Portland area. Can help with safety planning and connecting to confidential shelter.",
+    "categories": [
+      "safety",
+      "crisis",
+      "emergency_shelter"
+    ],
+    "populations": [
+      "dv"
+    ],
+    "counties": [
+      "multnomah",
+      "washington",
+      "clackamas"
+    ],
+    "age_min": 9,
+    "age_max": 26,
+    "phone": "503-235-5333",
+    "website": "https://www.calltosafety.org",
+    "hours": "24/7",
+    "crisis": true,
+    "flags": [
+      "confidential"
+    ]
+  },
+  {
+    "id": "multnomah-crisis-line",
+    "name": "Multnomah County Behavioral Health Crisis Line",
+    "org": "Multnomah County",
+    "description": "Local 24/7 mental health crisis line. Can send a mobile crisis team in some situations.",
+    "categories": [
+      "crisis",
+      "mental_health",
+      "substance_use"
+    ],
+    "counties": [
+      "multnomah"
+    ],
+    "age_min": 9,
+    "age_max": 26,
+    "phone": "503-988-4888",
+    "website": "https://www.multco.us/behavioral-health",
+    "hours": "24/7",
+    "crisis": true
+  },
+  {
+    "id": "washington-crisis-line",
+    "name": "Washington County Crisis Line",
+    "org": "Washington County",
+    "description": "Local 24/7 mental health crisis line for Washington County residents.",
+    "categories": [
+      "crisis",
+      "mental_health"
+    ],
+    "counties": [
+      "washington"
+    ],
+    "age_min": 9,
+    "age_max": 26,
+    "phone": "503-291-9111",
+    "website": "https://www.washingtoncountyor.gov/behavioral-health",
+    "hours": "24/7",
+    "crisis": true
+  },
+  {
+    "id": "clackamas-crisis-line",
+    "name": "Clackamas County Crisis Line",
+    "org": "Clackamas County",
+    "description": "Local 24/7 mental health crisis line for Clackamas County residents.",
+    "categories": [
+      "crisis",
+      "mental_health"
+    ],
+    "counties": [
+      "clackamas"
+    ],
+    "age_min": 9,
+    "age_max": 26,
+    "phone": "503-655-8585",
+    "website": "https://www.clackamas.us/behavioralhealth",
+    "hours": "24/7",
+    "crisis": true
+  },
+  {
+    "id": "janus-youth-shelter",
+    "name": "Janus Youth Programs — Youth Crisis Shelter & Homeless Youth Services",
+    "org": "Janus Youth Programs",
+    "description": "Runs emergency shelter and crisis services for children and teens, plus programs in Multnomah County's Homeless Youth Continuum for older youth (outreach, shelter, and transitional housing). Call or check the website for which program fits your age.",
+    "categories": [
+      "emergency_shelter",
+      "housing",
+      "crisis",
+      "safety",
+      "basic_needs"
+    ],
+    "populations": [
+      "unhoused",
+      "minor",
+      "young_adult"
+    ],
+    "counties": [
+      "multnomah"
+    ],
+    "age_min": 9,
+    "age_max": 24,
+    "website": "https://www.janusyouth.org",
+    "flags": [
+      "youth_only"
+    ]
+  },
+  {
+    "id": "janus-oak-bridge",
+    "name": "Janus Youth Programs — Vancouver Youth Shelter",
+    "org": "Janus Youth Programs",
+    "description": "Emergency shelter and crisis support for youth under 18 in Clark County, with family reunification support when safe.",
+    "categories": [
+      "emergency_shelter",
+      "crisis",
+      "safety"
+    ],
+    "populations": [
+      "minor",
+      "unhoused"
+    ],
+    "requires": [
+      "minor"
+    ],
+    "counties": [
+      "clark"
+    ],
+    "age_min": 9,
+    "age_max": 17,
+    "website": "https://www.janusyouth.org",
+    "flags": [
+      "youth_only"
+    ]
+  },
+  {
+    "id": "outside-in",
+    "name": "Outside In",
+    "org": "Outside In",
+    "description": "Downtown Portland drop-in for youth experiencing homelessness: meals, showers, laundry, case management, housing programs, education and job support, plus a medical clinic (including gender-affirming care) open to the community.",
+    "categories": [
+      "housing",
+      "emergency_shelter",
+      "basic_needs",
+      "food",
+      "health",
+      "mental_health",
+      "substance_use",
+      "education",
+      "employment",
+      "lgbtq_support",
+      "id_documents"
+    ],
+    "populations": [
+      "unhoused",
+      "lgbtq",
+      "trans",
+      "young_adult"
+    ],
+    "counties": [
+      "multnomah"
+    ],
+    "age_min": 16,
+    "age_max": 24,
+    "website": "https://outsidein.org",
+    "address": "1132 SW 13th Ave, Portland, OR",
+    "flags": [
+      "walk_in",
+      "lgbtq_affirming",
+      "youth_only"
+    ]
+  },
+  {
+    "id": "new-avenues",
+    "name": "New Avenues for Youth",
+    "org": "New Avenues for Youth",
+    "description": "Drop-in, housing, education, and job training programs for youth experiencing or at risk of homelessness, including paid job training through youth-run social enterprises and support for youth who have experienced exploitation.",
+    "categories": [
+      "housing",
+      "basic_needs",
+      "food",
+      "education",
+      "employment",
+      "mentoring",
+      "safety"
+    ],
+    "populations": [
+      "unhoused",
+      "trafficking",
+      "foster"
+    ],
+    "counties": [
+      "multnomah"
+    ],
+    "age_min": 14,
+    "age_max": 24,
+    "website": "https://newavenues.org",
+    "flags": [
+      "walk_in",
+      "lgbtq_affirming",
+      "youth_only"
+    ]
+  },
+  {
+    "id": "pear",
+    "name": "p:ear",
+    "org": "p:ear",
+    "description": "Mentoring through art, education, recreation, and job training for youth experiencing homelessness. Drop-in space, art studio, and paid internships.",
+    "categories": [
+      "mentoring",
+      "education",
+      "employment",
+      "basic_needs",
+      "food"
+    ],
+    "populations": [
+      "unhoused"
+    ],
+    "counties": [
+      "multnomah"
+    ],
+    "age_min": 15,
+    "age_max": 24,
+    "website": "https://pearmentor.org",
+    "flags": [
+      "walk_in",
+      "lgbtq_affirming",
+      "youth_only"
+    ]
+  },
+  {
+    "id": "naya",
+    "name": "Native American Youth and Family Center (NAYA)",
+    "org": "NAYA",
+    "description": "Culturally specific services for Native youth and families: youth programs and an early college academy, housing and homeless services, rent and energy assistance, and workforce programs.",
+    "categories": [
+      "housing",
+      "rent_assistance",
+      "utility_assistance",
+      "education",
+      "employment",
+      "mentoring",
+      "parenting"
+    ],
+    "populations": [
+      "native"
+    ],
+    "culturally_specific": [
+      "native"
+    ],
+    "counties": [
+      "multnomah"
+    ],
+    "age_min": 9,
+    "age_max": 26,
+    "website": "https://nayapdx.org",
+    "flags": [
+      "culturally_specific"
+    ]
+  },
+  {
+    "id": "urban-league-pdx",
+    "name": "Urban League of Portland",
+    "org": "Urban League of Portland",
+    "description": "Culturally specific services centering Black Oregonians, including housing support, rent assistance (when funded), and workforce training and job placement.",
+    "categories": [
+      "rent_assistance",
+      "housing",
+      "employment",
+      "utility_assistance"
+    ],
+    "populations": [
+      "black"
+    ],
+    "culturally_specific": [
+      "black"
+    ],
+    "counties": [
+      "multnomah"
+    ],
+    "age_min": 16,
+    "age_max": 26,
+    "website": "https://ulpdx.org",
+    "flags": [
+      "culturally_specific"
+    ]
+  },
+  {
+    "id": "latino-network",
+    "name": "Latino Network",
+    "org": "Latino Network",
+    "description": "Culturally specific youth and family programs for Latine communities, including school-based youth support, mentoring, and family stabilization services.",
+    "categories": [
+      "education",
+      "mentoring",
+      "rent_assistance",
+      "parenting"
+    ],
+    "populations": [
+      "latine",
+      "immigrant"
+    ],
+    "culturally_specific": [
+      "latine"
+    ],
+    "counties": [
+      "multnomah",
+      "washington",
+      "clackamas"
+    ],
+    "age_min": 9,
+    "age_max": 24,
+    "languages": [
+      "en",
+      "es"
+    ],
+    "website": "https://www.latnet.org",
+    "flags": [
+      "culturally_specific"
+    ]
+  },
+  {
+    "id": "el-programa",
+    "name": "El Programa Hispano Católico",
+    "org": "Catholic Charities of Oregon",
+    "description": "Bilingual services in East Multnomah County including energy bill assistance, rent assistance, and youth programs. Spanish speakers welcome.",
+    "categories": [
+      "utility_assistance",
+      "rent_assistance",
+      "eviction_help",
+      "mentoring",
+      "food"
+    ],
+    "populations": [
+      "latine",
+      "immigrant",
+      "low_income"
+    ],
+    "culturally_specific": [
+      "latine"
+    ],
+    "counties": [
+      "multnomah"
+    ],
+    "age_min": 18,
+    "age_max": 26,
+    "languages": [
+      "en",
+      "es"
+    ],
+    "website": "https://www.elprograma.org",
+    "eligibility": "Utility and rent assistance usually require being the adult named on the bill or lease and meeting income limits.",
+    "flags": [
+      "culturally_specific"
+    ]
+  },
+  {
+    "id": "irco",
+    "name": "IRCO (Immigrant and Refugee Community Organization)",
+    "org": "IRCO",
+    "description": "Services for immigrant and refugee youth and families in many languages: youth programs, school support, employment, and energy bill assistance.",
+    "categories": [
+      "utility_assistance",
+      "education",
+      "employment",
+      "mentoring",
+      "parenting",
+      "rent_assistance"
+    ],
+    "populations": [
+      "immigrant"
+    ],
+    "culturally_specific": [
+      "asian",
+      "mena",
+      "black",
+      "latine",
+      "pacific_islander"
+    ],
+    "counties": [
+      "multnomah",
+      "washington",
+      "clackamas"
+    ],
+    "age_min": 9,
+    "age_max": 26,
+    "languages": [
+      "en",
+      "es",
+      "vi",
+      "zh",
+      "ru",
+      "so",
+      "ar",
+      "uk",
+      "other"
+    ],
+    "website": "https://irco.org",
+    "flags": [
+      "culturally_specific"
+    ]
+  },
+  {
+    "id": "multco-energy",
+    "name": "Multnomah County Energy Assistance",
+    "org": "Multnomah County",
+    "description": "Helps low-income households pay heating and electric bills (LIHEAP/OEAP) and avoid shutoff. Applications go through community partner agencies when funding is open.",
+    "categories": [
+      "utility_assistance"
+    ],
+    "populations": [
+      "low_income"
+    ],
+    "requires": [
+      "young_adult"
+    ],
+    "counties": [
+      "multnomah"
+    ],
+    "age_min": 18,
+    "age_max": 26,
+    "website": "https://www.multco.us/energy",
+    "eligibility": "You must be the person (or in the household) responsible for the bill, and meet income limits.",
+    "flags": [
+      "online"
+    ]
+  },
+  {
+    "id": "home-forward",
+    "name": "Home Forward",
+    "org": "Home Forward",
+    "description": "Multnomah County's housing authority: affordable apartments, Housing Choice Vouchers, and Foster Youth to Independence (FYI) vouchers for young adults leaving foster care. Waitlists open periodically.",
+    "categories": [
+      "housing",
+      "rent_assistance"
+    ],
+    "populations": [
+      "low_income",
+      "foster"
+    ],
+    "requires": [
+      "young_adult"
+    ],
+    "counties": [
+      "multnomah"
+    ],
+    "age_min": 18,
+    "age_max": 26,
+    "website": "https://www.homeforward.org",
+    "flags": [
+      "online"
+    ]
+  },
+  {
+    "id": "caowash",
+    "name": "Community Action (Washington County)",
+    "org": "Community Action Organization",
+    "description": "Washington County's community action agency: energy bill assistance, rent and eviction-prevention help, housing support, and Head Start for families with young children.",
+    "categories": [
+      "utility_assistance",
+      "rent_assistance",
+      "eviction_help",
+      "housing",
+      "parenting"
+    ],
+    "populations": [
+      "low_income",
+      "parenting"
+    ],
+    "counties": [
+      "washington"
+    ],
+    "age_min": 18,
+    "age_max": 26,
+    "website": "https://caowash.org",
+    "languages": [
+      "en",
+      "es"
+    ],
+    "flags": [
+      "online"
+    ]
+  },
+  {
+    "id": "homeplate",
+    "name": "HomePlate Youth Services",
+    "org": "HomePlate Youth Services",
+    "description": "Drop-in nights, meals, supplies, case management, and housing navigation for youth experiencing housing instability in Washington County.",
+    "categories": [
+      "basic_needs",
+      "food",
+      "housing",
+      "mentoring",
+      "education",
+      "employment"
+    ],
+    "populations": [
+      "unhoused"
+    ],
+    "counties": [
+      "washington"
+    ],
+    "age_min": 12,
+    "age_max": 24,
+    "website": "https://www.homeplateyouth.org",
+    "flags": [
+      "walk_in",
+      "youth_only",
+      "lgbtq_affirming"
+    ]
+  },
+  {
+    "id": "boys-girls-aid",
+    "name": "Boys & Girls Aid",
+    "org": "Boys & Girls Aid",
+    "description": "Safe Place youth shelter for teens who can't stay at home, plus transitional housing and support for young people leaving foster care.",
+    "categories": [
+      "emergency_shelter",
+      "housing",
+      "safety",
+      "mentoring"
+    ],
+    "populations": [
+      "minor",
+      "foster",
+      "unhoused"
+    ],
+    "counties": [
+      "multnomah",
+      "washington",
+      "clackamas"
+    ],
+    "age_min": 11,
+    "age_max": 24,
+    "website": "https://boysandgirlsaid.org",
+    "flags": [
+      "youth_only"
+    ]
+  },
+  {
+    "id": "clackamas-social-services",
+    "name": "Clackamas County Social Services",
+    "org": "Clackamas County",
+    "description": "Energy bill assistance, rent assistance and eviction prevention, and housing help for Clackamas County residents.",
+    "categories": [
+      "utility_assistance",
+      "rent_assistance",
+      "eviction_help",
+      "housing"
+    ],
+    "populations": [
+      "low_income"
+    ],
+    "counties": [
+      "clackamas"
+    ],
+    "age_min": 18,
+    "age_max": 26,
+    "website": "https://www.clackamas.us/socialservices",
+    "flags": [
+      "online"
+    ]
+  },
+  {
+    "id": "nwha",
+    "name": "Northwest Housing Alternatives",
+    "org": "Northwest Housing Alternatives",
+    "description": "Affordable housing and homeless services in Clackamas County, including the Annie Ross House family shelter and rent assistance programs.",
+    "categories": [
+      "emergency_shelter",
+      "housing",
+      "rent_assistance"
+    ],
+    "populations": [
+      "parenting",
+      "low_income",
+      "unhoused"
+    ],
+    "counties": [
+      "clackamas"
+    ],
+    "age_min": 18,
+    "age_max": 26,
+    "website": "https://nwhousing.org"
+  },
+  {
+    "id": "council-for-homeless",
+    "name": "Council for the Homeless — Housing Solutions Center",
+    "org": "Council for the Homeless",
+    "description": "Clark County's front door for shelter, housing, and rent help. Call the Housing Solutions Center to be screened for shelter and housing programs.",
+    "categories": [
+      "emergency_shelter",
+      "housing",
+      "rent_assistance",
+      "eviction_help"
+    ],
+    "populations": [
+      "unhoused",
+      "low_income"
+    ],
+    "counties": [
+      "clark"
+    ],
+    "age_min": 9,
+    "age_max": 26,
+    "website": "https://www.councilforthehomeless.org"
+  },
+  {
+    "id": "vancouver-housing-authority",
+    "name": "Vancouver Housing Authority",
+    "org": "Vancouver Housing Authority",
+    "description": "Clark County's housing authority: affordable housing and vouchers, including Foster Youth to Independence (FYI) vouchers.",
+    "categories": [
+      "housing",
+      "rent_assistance"
+    ],
+    "populations": [
+      "low_income",
+      "foster"
+    ],
+    "requires": [
+      "young_adult"
+    ],
+    "counties": [
+      "clark"
+    ],
+    "age_min": 18,
+    "age_max": 26,
+    "website": "https://www.vhausa.com"
+  },
+  {
+    "id": "clark-public-utilities",
+    "name": "Clark Public Utilities — Bill Assistance",
+    "org": "Clark Public Utilities",
+    "description": "Payment plans and bill assistance programs for Clark Public Utilities customers having trouble paying electric or water bills.",
+    "categories": [
+      "utility_assistance"
+    ],
+    "populations": [
+      "low_income"
+    ],
+    "requires": [
+      "young_adult"
+    ],
+    "counties": [
+      "clark"
+    ],
+    "age_min": 18,
+    "age_max": 26,
+    "website": "https://www.clarkpublicutilities.com",
+    "flags": [
+      "online"
+    ]
+  },
+  {
+    "id": "pge-bill-discount",
+    "name": "PGE Income-Qualified Bill Discount",
+    "org": "Portland General Electric",
+    "description": "Monthly discount on PGE electric bills for income-qualified customers, plus payment arrangements to avoid disconnection.",
+    "categories": [
+      "utility_assistance"
+    ],
+    "populations": [
+      "low_income"
+    ],
+    "requires": [
+      "young_adult"
+    ],
+    "counties": [
+      "multnomah",
+      "washington",
+      "clackamas",
+      "yamhill"
+    ],
+    "age_min": 18,
+    "age_max": 26,
+    "website": "https://portlandgeneral.com",
+    "eligibility": "For PGE customers whose name is on the account and who meet income limits.",
+    "flags": [
+      "online"
+    ]
+  },
+  {
+    "id": "pacific-power-discount",
+    "name": "Pacific Power Low-Income Bill Discount",
+    "org": "Pacific Power",
+    "description": "Bill discount for income-qualified Pacific Power customers in Oregon, plus payment plans.",
+    "categories": [
+      "utility_assistance"
+    ],
+    "populations": [
+      "low_income"
+    ],
+    "requires": [
+      "young_adult"
+    ],
+    "counties": [
+      "multnomah",
+      "washington",
+      "clackamas",
+      "columbia",
+      "yamhill"
+    ],
+    "age_min": 18,
+    "age_max": 26,
+    "website": "https://www.pacificpower.net",
+    "flags": [
+      "online"
+    ]
+  },
+  {
+    "id": "nw-natural-assistance",
+    "name": "NW Natural Bill Discount & Assistance",
+    "org": "NW Natural",
+    "description": "Bill discount and assistance for income-qualified natural gas customers in Oregon and SW Washington.",
+    "categories": [
+      "utility_assistance"
+    ],
+    "populations": [
+      "low_income"
+    ],
+    "requires": [
+      "young_adult"
+    ],
+    "counties": [
+      "multnomah",
+      "washington",
+      "clackamas",
+      "clark",
+      "columbia",
+      "yamhill"
+    ],
+    "age_min": 18,
+    "age_max": 26,
+    "website": "https://www.nwnatural.com",
+    "flags": [
+      "online"
+    ]
+  },
+  {
+    "id": "oregon-energy-fund",
+    "name": "Oregon Energy Fund",
+    "org": "Oregon Energy Fund",
+    "description": "Nonprofit that helps Oregon households pay energy bills, working through local partner agencies.",
+    "categories": [
+      "utility_assistance"
+    ],
+    "populations": [
+      "low_income"
+    ],
+    "requires": [
+      "young_adult"
+    ],
+    "counties": [
+      "multnomah",
+      "washington",
+      "clackamas",
+      "columbia",
+      "yamhill"
+    ],
+    "age_min": 18,
+    "age_max": 26,
+    "website": "https://oregonenergyfund.org"
+  },
+  {
+    "id": "portland-water-assistance",
+    "name": "Portland Water Bureau — Financial Assistance",
+    "org": "City of Portland",
+    "description": "Discounts, crisis vouchers, and payment plans for Portland sewer, stormwater, and water bills.",
+    "categories": [
+      "utility_assistance"
+    ],
+    "populations": [
+      "low_income"
+    ],
+    "requires": [
+      "young_adult"
+    ],
+    "counties": [
+      "multnomah"
+    ],
+    "age_min": 18,
+    "age_max": 26,
+    "website": "https://www.portland.gov/water",
+    "flags": [
+      "online"
+    ]
+  },
+  {
+    "id": "yamhill-cap",
+    "name": "Yamhill Community Action Partnership (YCAP)",
+    "org": "YCAP",
+    "description": "Energy bill assistance, rent help, housing and shelter navigation, food, and youth outreach in Yamhill County.",
+    "categories": [
+      "utility_assistance",
+      "rent_assistance",
+      "housing",
+      "emergency_shelter",
+      "food"
+    ],
+    "populations": [
+      "low_income",
+      "unhoused"
+    ],
+    "counties": [
+      "yamhill"
+    ],
+    "age_min": 9,
+    "age_max": 26,
+    "website": "https://yamhillcap.org"
+  },
+  {
+    "id": "columbia-cat",
+    "name": "Community Action Team (Columbia County)",
+    "org": "Community Action Team",
+    "description": "Energy bill assistance, rent help, housing programs, and Head Start serving Columbia County.",
+    "categories": [
+      "utility_assistance",
+      "rent_assistance",
+      "housing",
+      "parenting"
+    ],
+    "populations": [
+      "low_income",
+      "parenting"
+    ],
+    "counties": [
+      "columbia"
+    ],
+    "age_min": 18,
+    "age_max": 26,
+    "website": "https://www.cat-team.org"
+  },
+  {
+    "id": "odhs-ilp",
+    "name": "Independent Living Program (ILP) & Chafee Housing",
+    "org": "Oregon Department of Human Services",
+    "description": "For current and former foster youth: life skills, help with education and jobs, and Chafee housing funds to help pay rent while transitioning to adulthood. Ask your caseworker or contact ODHS.",
+    "categories": [
+      "housing",
+      "rent_assistance",
+      "education",
+      "employment",
+      "mentoring"
+    ],
+    "populations": [
+      "foster"
+    ],
+    "requires": [
+      "foster"
+    ],
+    "counties": [
+      "multnomah",
+      "washington",
+      "clackamas",
+      "columbia",
+      "yamhill"
+    ],
+    "age_min": 14,
+    "age_max": 23,
+    "website": "https://www.oregon.gov/odhs/children-youth-families/pages/independent-living.aspx",
+    "eligibility": "Eligibility depends on time spent in foster care; ages vary by service."
+  },
+  {
+    "id": "bridge-meadows",
+    "name": "Bridge Meadows",
+    "org": "Bridge Meadows",
+    "description": "Intergenerational housing communities for families adopting youth from foster care, elders, and young adults who have aged out of foster care.",
+    "categories": [
+      "housing",
+      "mentoring"
+    ],
+    "populations": [
+      "foster"
+    ],
+    "requires": [
+      "foster"
+    ],
+    "counties": [
+      "multnomah"
+    ],
+    "age_min": 18,
+    "age_max": 26,
+    "website": "https://bridgemeadows.org"
+  },
+  {
+    "id": "youth-villages-lifeset",
+    "name": "Youth Villages — LifeSet",
+    "org": "Youth Villages",
+    "description": "Intensive one-on-one support for young adults transitioning out of foster care or the justice system: housing, school, work, and relationships.",
+    "categories": [
+      "mentoring",
+      "housing",
+      "education",
+      "employment"
+    ],
+    "populations": [
+      "foster",
+      "justice",
+      "reentry"
+    ],
+    "requires": [
+      "foster",
+      "justice",
+      "reentry"
+    ],
+    "counties": [
+      "multnomah",
+      "washington",
+      "clackamas"
+    ],
+    "age_min": 17,
+    "age_max": 22,
+    "website": "https://youthvillages.org"
+  },
+  {
+    "id": "pcc-future-connect",
+    "name": "PCC Future Connect",
+    "org": "Portland Community College",
+    "description": "College success program for first-generation and low-income students: scholarships, advising, and support starting in the first year at PCC.",
+    "categories": [
+      "education"
+    ],
+    "populations": [
+      "low_income",
+      "student"
+    ],
+    "counties": [
+      "multnomah",
+      "washington",
+      "clackamas",
+      "columbia",
+      "yamhill"
+    ],
+    "age_min": 16,
+    "age_max": 26,
+    "website": "https://www.pcc.edu",
+    "flags": [
+      "online"
+    ]
+  },
+  {
+    "id": "poic-rahs",
+    "name": "POIC + Rosemary Anderson High School",
+    "org": "Portland Opportunities Industrialization Center",
+    "description": "Alternative high school, re-engagement, mentoring, and job training for youth who have been pushed out of or left traditional school.",
+    "categories": [
+      "education",
+      "employment",
+      "mentoring"
+    ],
+    "populations": [
+      "black",
+      "justice",
+      "student",
+      "reentry"
+    ],
+    "culturally_specific": [
+      "black"
+    ],
+    "counties": [
+      "multnomah"
+    ],
+    "age_min": 14,
+    "age_max": 24,
+    "website": "https://www.poic.org",
+    "flags": [
+      "youth_only"
+    ]
+  },
+  {
+    "id": "portland-youthbuilders",
+    "name": "Portland YouthBuilders",
+    "org": "Portland YouthBuilders",
+    "description": "Earn a high school diploma or GED while training in construction or technology, with stipends, case management, and job placement.",
+    "categories": [
+      "education",
+      "employment"
+    ],
+    "populations": [
+      "low_income",
+      "justice",
+      "reentry"
+    ],
+    "counties": [
+      "multnomah",
+      "washington",
+      "clackamas"
+    ],
+    "age_min": 17,
+    "age_max": 24,
+    "website": "https://pyb.org",
+    "flags": [
+      "youth_only"
+    ]
+  },
+  {
+    "id": "job-corps",
+    "name": "Job Corps",
+    "org": "U.S. Department of Labor",
+    "description": "Free career training and education. Most students live on campus with housing, meals, and healthcare included while they train.",
+    "categories": [
+      "employment",
+      "education",
+      "housing",
+      "food",
+      "health"
+    ],
+    "populations": [
+      "low_income"
+    ],
+    "counties": [
+      "all"
+    ],
+    "age_min": 16,
+    "age_max": 24,
+    "phone": "1-800-733-5627",
+    "website": "https://www.jobcorps.gov",
+    "flags": [
+      "online",
+      "youth_only"
+    ]
+  },
+  {
+    "id": "worksource-oregon",
+    "name": "WorkSource Oregon / Worksystems Youth Programs",
+    "org": "WorkSource Oregon",
+    "description": "Job search help, paid work experience, and training funds. Ask about youth employment programs for ages 16–24.",
+    "categories": [
+      "employment"
+    ],
+    "counties": [
+      "multnomah",
+      "washington",
+      "clackamas",
+      "columbia",
+      "yamhill"
+    ],
+    "age_min": 16,
+    "age_max": 26,
+    "website": "https://www.worksourceoregon.org",
+    "flags": [
+      "online",
+      "walk_in"
+    ]
+  },
+  {
+    "id": "oregon-food-bank",
+    "name": "Oregon Food Bank — Find Food",
+    "org": "Oregon Food Bank",
+    "description": "Map of free food pantries and meal sites across Oregon and Clark County. No ID required at most pantries.",
+    "categories": [
+      "food"
+    ],
+    "counties": [
+      "multnomah",
+      "washington",
+      "clackamas",
+      "clark",
+      "columbia",
+      "yamhill"
+    ],
+    "age_min": 9,
+    "age_max": 26,
+    "website": "https://www.oregonfoodbank.org/find-food",
+    "flags": [
+      "online",
+      "walk_in"
+    ]
+  },
+  {
+    "id": "oregon-wic",
+    "name": "WIC (Women, Infants & Children)",
+    "org": "Oregon Health Authority / WA DOH",
+    "description": "Free healthy food, breastfeeding support, and nutrition help for people who are pregnant or parenting children under 5. Teens qualify on their own.",
+    "categories": [
+      "food",
+      "parenting",
+      "health"
+    ],
+    "populations": [
+      "parenting"
+    ],
+    "requires": [
+      "parenting"
+    ],
+    "counties": [
+      "multnomah",
+      "washington",
+      "clackamas",
+      "clark",
+      "columbia",
+      "yamhill"
+    ],
+    "age_min": 12,
+    "age_max": 26,
+    "website": "https://www.oregon.gov/oha/ph/healthypeoplefamilies/wic",
+    "languages": [
+      "en",
+      "es",
+      "other"
+    ]
+  },
+  {
+    "id": "multco-sbhc",
+    "name": "Multnomah County Student Health Centers",
+    "org": "Multnomah County",
+    "description": "Free, confidential medical and mental health care at school-based clinics for any young person in the county, insured or not. Youth 15+ can consent to their own care in Oregon.",
+    "categories": [
+      "health",
+      "mental_health"
+    ],
+    "populations": [
+      "minor",
+      "student"
+    ],
+    "counties": [
+      "multnomah"
+    ],
+    "age_min": 9,
+    "age_max": 18,
+    "website": "https://www.multco.us/school",
+    "flags": [
+      "confidential",
+      "walk_in",
+      "youth_only",
+      "lgbtq_affirming"
+    ]
+  },
+  {
+    "id": "q-center",
+    "name": "Q Center",
+    "org": "Q Center",
+    "description": "Portland's LGBTQIA2S+ community center: youth and young adult groups, peer support, and resource referrals.",
+    "categories": [
+      "lgbtq_support",
+      "mentoring",
+      "mental_health"
+    ],
+    "populations": [
+      "lgbtq",
+      "trans"
+    ],
+    "requires": [
+      "lgbtq",
+      "trans"
+    ],
+    "counties": [
+      "multnomah",
+      "washington",
+      "clackamas",
+      "clark"
+    ],
+    "age_min": 13,
+    "age_max": 26,
+    "website": "https://www.pdxqcenter.org",
+    "flags": [
+      "lgbtq_affirming",
+      "walk_in"
+    ]
+  },
+  {
+    "id": "raphael-house",
+    "name": "Raphael House of Portland",
+    "org": "Raphael House",
+    "description": "Confidential emergency shelter, advocacy, and housing support for survivors of domestic violence and their children.",
+    "categories": [
+      "safety",
+      "emergency_shelter",
+      "housing",
+      "rent_assistance"
+    ],
+    "populations": [
+      "dv",
+      "parenting"
+    ],
+    "requires": [
+      "dv"
+    ],
+    "counties": [
+      "multnomah"
+    ],
+    "age_min": 18,
+    "age_max": 26,
+    "website": "https://raphaelhouse.com",
+    "flags": [
+      "confidential"
+    ]
+  },
+  {
+    "id": "dvrc-washington",
+    "name": "Domestic Violence Resource Center",
+    "org": "Domestic Violence Resource Center",
+    "description": "Washington County crisis line, emergency shelter, and advocacy for survivors of domestic and dating violence.",
+    "categories": [
+      "safety",
+      "emergency_shelter",
+      "crisis"
+    ],
+    "populations": [
+      "dv"
+    ],
+    "requires": [
+      "dv"
+    ],
+    "counties": [
+      "washington"
+    ],
+    "age_min": 13,
+    "age_max": 26,
+    "website": "https://www.dvrc-or.org",
+    "flags": [
+      "confidential"
+    ]
+  },
+  {
+    "id": "clackamas-womens-services",
+    "name": "Clackamas Women's Services",
+    "org": "Clackamas Women's Services",
+    "description": "Support for survivors of domestic and sexual violence, trafficking, and stalking in Clackamas County, including shelter and youth-specific advocacy. Serves all genders.",
+    "categories": [
+      "safety",
+      "emergency_shelter",
+      "crisis",
+      "legal"
+    ],
+    "populations": [
+      "dv",
+      "trafficking"
+    ],
+    "requires": [
+      "dv",
+      "trafficking"
+    ],
+    "counties": [
+      "clackamas"
+    ],
+    "age_min": 12,
+    "age_max": 26,
+    "website": "https://www.cwsor.org",
+    "flags": [
+      "confidential"
+    ]
+  },
+  {
+    "id": "ywca-clark",
+    "name": "YWCA Clark County — SafeChoice",
+    "org": "YWCA Clark County",
+    "description": "Confidential shelter, advocacy, and support for survivors of domestic and sexual violence in Clark County.",
+    "categories": [
+      "safety",
+      "emergency_shelter",
+      "crisis",
+      "legal"
+    ],
+    "populations": [
+      "dv"
+    ],
+    "requires": [
+      "dv"
+    ],
+    "counties": [
+      "clark"
+    ],
+    "age_min": 12,
+    "age_max": 26,
+    "website": "https://ywcaclarkcounty.org",
+    "flags": [
+      "confidential"
+    ]
+  },
+  {
+    "id": "safety-compass",
+    "name": "Safety Compass",
+    "org": "Safety Compass",
+    "description": "Advocacy for survivors of commercial sexual exploitation and trafficking, including youth, in the Portland metro area.",
+    "categories": [
+      "safety",
+      "legal",
+      "mentoring"
+    ],
+    "populations": [
+      "trafficking"
+    ],
+    "requires": [
+      "trafficking"
+    ],
+    "counties": [
+      "multnomah",
+      "washington",
+      "clackamas"
+    ],
+    "age_min": 12,
+    "age_max": 26,
+    "website": "https://www.safetycompass.org",
+    "flags": [
+      "confidential",
+      "no_police"
+    ]
+  },
+  {
+    "id": "youth-rights-justice",
+    "name": "Youth, Rights & Justice",
+    "org": "Youth, Rights & Justice",
+    "description": "Legal representation and advocacy for youth in the juvenile justice and child welfare systems, plus help with school discipline and expungement.",
+    "categories": [
+      "legal",
+      "education"
+    ],
+    "populations": [
+      "justice",
+      "foster",
+      "minor",
+      "reentry"
+    ],
+    "counties": [
+      "multnomah",
+      "washington",
+      "clackamas"
+    ],
+    "age_min": 9,
+    "age_max": 24,
+    "website": "https://youthrightsjustice.org"
+  },
+  {
+    "id": "oregon-law-help",
+    "name": "Legal Aid Services of Oregon / Oregon Law Center",
+    "org": "Legal Aid Services of Oregon",
+    "description": "Free civil legal help for low-income Oregonians, including eviction defense, benefits, and family law. OregonLawHelp.org has self-help guides.",
+    "categories": [
+      "legal",
+      "eviction_help"
+    ],
+    "populations": [
+      "low_income"
+    ],
+    "counties": [
+      "multnomah",
+      "washington",
+      "clackamas",
+      "columbia",
+      "yamhill"
+    ],
+    "age_min": 18,
+    "age_max": 26,
+    "website": "https://oregonlawhelp.org",
+    "flags": [
+      "online"
+    ]
+  },
+  {
+    "id": "community-alliance-tenants",
+    "name": "Community Alliance of Tenants — Renters' Rights Hotline",
+    "org": "Community Alliance of Tenants",
+    "description": "Renter education and hotline for Oregon tenants facing eviction, repairs, or landlord problems.",
+    "categories": [
+      "eviction_help",
+      "legal"
+    ],
+    "counties": [
+      "multnomah",
+      "washington",
+      "clackamas",
+      "columbia",
+      "yamhill"
+    ],
+    "age_min": 16,
+    "age_max": 26,
+    "website": "https://www.oregoncat.org",
+    "languages": [
+      "en",
+      "es"
+    ]
+  },
+  {
+    "id": "trimet-reduced-fare",
+    "name": "TriMet Youth & Low-Income Fares",
+    "org": "TriMet",
+    "description": "Reduced fares for youth 7–17 and income-qualified adults (Honored Citizen). Many Portland-area high school students can get a free pass through their school.",
+    "categories": [
+      "transportation"
+    ],
+    "counties": [
+      "multnomah",
+      "washington",
+      "clackamas"
+    ],
+    "age_min": 9,
+    "age_max": 26,
+    "website": "https://trimet.org/fares",
+    "flags": [
+      "online"
+    ]
+  },
+  {
+    "id": "lifeline-phone",
+    "name": "Lifeline Phone & Internet Discount",
+    "org": "FCC / Universal Service Administrative Co.",
+    "description": "Federal program that lowers the cost of phone or internet service for people on SNAP, Medicaid/OHP, SSI, or with low income. Oregon adds its own discount.",
+    "categories": [
+      "phone_internet"
+    ],
+    "populations": [
+      "low_income"
+    ],
+    "requires": [
+      "young_adult"
+    ],
+    "counties": [
+      "all"
+    ],
+    "age_min": 18,
+    "age_max": 26,
+    "website": "https://www.lifelinesupport.org",
+    "flags": [
+      "online"
+    ]
+  },
+  {
+    "id": "oregon-snap-ohp",
+    "name": "Oregon SNAP, OHP & Cash Assistance (ONE)",
+    "org": "Oregon Department of Human Services",
+    "description": "Apply in one place for SNAP food benefits, Oregon Health Plan (free health coverage), TANF, and childcare help (ERDC).",
+    "categories": [
+      "food",
+      "health",
+      "parenting"
+    ],
+    "populations": [
+      "low_income"
+    ],
+    "counties": [
+      "multnomah",
+      "washington",
+      "clackamas",
+      "columbia",
+      "yamhill"
+    ],
+    "age_min": 9,
+    "age_max": 26,
+    "website": "https://benefits.oregon.gov",
+    "languages": [
+      "en",
+      "es",
+      "vi",
+      "zh",
+      "ru",
+      "so",
+      "ar",
+      "other"
+    ],
+    "flags": [
+      "online"
+    ]
+  },
+  {
+    "id": "national-dv-hotline",
+    "name": "National Domestic Violence Hotline",
+    "org": "The Hotline",
+    "description": "Free, confidential support for anyone experiencing abuse in a relationship or at home — safety planning, someone to talk to, and connections to local shelter and advocates.",
+    "categories": [
+      "safety",
+      "crisis",
+      "emergency_shelter"
+    ],
+    "populations": [
+      "dv"
+    ],
+    "counties": [
+      "all"
+    ],
+    "age_min": 9,
+    "age_max": 26,
+    "phone": "1-800-799-7233",
+    "text": "Text START to 88788",
+    "website": "https://www.thehotline.org",
+    "hours": "24/7",
+    "crisis": true,
+    "languages": [
+      "en",
+      "es",
+      "other"
+    ],
+    "flags": [
+      "text_chat",
+      "confidential",
+      "no_police",
+      "lgbtq_affirming"
+    ]
+  },
+  {
+    "id": "love-is-respect",
+    "name": "love is respect",
+    "org": "The Hotline",
+    "description": "Dating abuse help line built for teens and young adults. Talk, text, or chat about a relationship that doesn't feel right — for yourself or a friend.",
+    "categories": [
+      "safety",
+      "crisis",
+      "mentoring"
+    ],
+    "populations": [
+      "dv"
+    ],
+    "counties": [
+      "all"
+    ],
+    "age_min": 12,
+    "age_max": 26,
+    "phone": "1-866-331-9474",
+    "text": "Text LOVEIS to 22522",
+    "website": "https://www.loveisrespect.org",
+    "hours": "24/7",
+    "crisis": true,
+    "languages": [
+      "en",
+      "es"
+    ],
+    "flags": [
+      "text_chat",
+      "confidential",
+      "youth_only",
+      "no_police",
+      "lgbtq_affirming"
+    ]
+  },
+  {
+    "id": "stronghearts",
+    "name": "StrongHearts Native Helpline",
+    "org": "StrongHearts Native Helpline",
+    "description": "Culturally grounded, confidential support for Native people affected by domestic, dating, and sexual violence, staffed by Native advocates.",
+    "categories": [
+      "safety",
+      "crisis"
+    ],
+    "populations": [
+      "dv",
+      "native"
+    ],
+    "culturally_specific": [
+      "native"
+    ],
+    "counties": [
+      "all"
+    ],
+    "age_min": 9,
+    "age_max": 26,
+    "phone": "1-844-762-8483",
+    "website": "https://strongheartshelpline.org",
+    "hours": "24/7",
+    "crisis": true,
+    "flags": [
+      "confidential",
+      "culturally_specific",
+      "text_chat"
+    ]
+  },
+  {
+    "id": "rainn",
+    "name": "RAINN National Sexual Assault Hotline",
+    "org": "RAINN",
+    "description": "Confidential support after sexual assault or abuse, any time it happened. Connects you to a local sexual assault service provider.",
+    "categories": [
+      "safety",
+      "crisis",
+      "mental_health"
+    ],
+    "populations": [
+      "dv"
+    ],
+    "counties": [
+      "all"
+    ],
+    "age_min": 9,
+    "age_max": 26,
+    "phone": "1-800-656-4673",
+    "website": "https://www.rainn.org",
+    "hours": "24/7",
+    "crisis": true,
+    "languages": [
+      "en",
+      "es"
+    ],
+    "flags": [
+      "confidential",
+      "text_chat"
+    ]
+  },
+  {
+    "id": "bradley-angle",
+    "name": "Bradley Angle",
+    "org": "Bradley Angle",
+    "description": "Portland domestic violence services: confidential emergency shelter, housing support, and support groups, with programs specifically for LGBTQIA2S+ survivors and Black and African American survivors.",
+    "categories": [
+      "safety",
+      "emergency_shelter",
+      "housing",
+      "rent_assistance",
+      "lgbtq_support"
+    ],
+    "populations": [
+      "dv",
+      "lgbtq",
+      "black"
+    ],
+    "requires": [
+      "dv"
+    ],
+    "culturally_specific": [
+      "black"
+    ],
+    "counties": [
+      "multnomah"
+    ],
+    "age_min": 16,
+    "age_max": 26,
+    "website": "https://www.bradleyangle.org",
+    "eligibility": "Ages served vary by program — ask about youth eligibility.",
+    "flags": [
+      "confidential",
+      "lgbtq_affirming",
+      "culturally_specific"
+    ]
+  },
+  {
+    "id": "henderson-house",
+    "name": "Henderson House",
+    "org": "Henderson House",
+    "description": "Crisis line, confidential shelter, and advocacy for survivors of domestic and sexual violence in Yamhill County.",
+    "categories": [
+      "safety",
+      "emergency_shelter",
+      "crisis",
+      "legal"
+    ],
+    "populations": [
+      "dv"
+    ],
+    "requires": [
+      "dv"
+    ],
+    "counties": [
+      "yamhill"
+    ],
+    "age_min": 12,
+    "age_max": 26,
+    "website": "https://www.hendersonhouse.org",
+    "flags": [
+      "confidential"
+    ]
+  },
+  {
+    "id": "central-city-concern",
+    "name": "Central City Concern",
+    "org": "Central City Concern",
+    "description": "Portland nonprofit offering recovery-focused housing, an employment center, health care, and peer support — including services for people leaving jail or prison.",
+    "categories": [
+      "housing",
+      "employment",
+      "health",
+      "mental_health",
+      "substance_use",
+      "id_documents"
+    ],
+    "populations": [
+      "reentry",
+      "justice",
+      "unhoused"
+    ],
+    "counties": [
+      "multnomah"
+    ],
+    "age_min": 18,
+    "age_max": 26,
+    "website": "https://centralcityconcern.org",
+    "flags": [
+      "walk_in"
+    ]
+  },
+  {
+    "id": "bridges-to-change",
+    "name": "Bridges to Change",
+    "org": "Bridges to Change",
+    "description": "Peer mentors with lived experience plus transitional and recovery housing for people coming out of incarceration or in recovery.",
+    "categories": [
+      "housing",
+      "mentoring",
+      "substance_use",
+      "employment"
+    ],
+    "populations": [
+      "reentry",
+      "justice"
+    ],
+    "requires": [
+      "justice",
+      "reentry"
+    ],
+    "counties": [
+      "multnomah",
+      "washington",
+      "clackamas"
+    ],
+    "age_min": 18,
+    "age_max": 26,
+    "website": "https://www.bridgestochange.com"
+  },
+  {
+    "id": "constructing-hope",
+    "name": "Constructing Hope",
+    "org": "Constructing Hope",
+    "description": "Paid-pathway pre-apprenticeship construction training that welcomes people with conviction histories and centers people of color.",
+    "categories": [
+      "employment",
+      "education"
+    ],
+    "populations": [
+      "reentry",
+      "justice",
+      "black",
+      "low_income"
+    ],
+    "culturally_specific": [
+      "black"
+    ],
+    "counties": [
+      "multnomah",
+      "washington",
+      "clackamas",
+      "clark"
+    ],
+    "age_min": 18,
+    "age_max": 26,
+    "website": "https://www.constructinghope.org"
+  },
+  {
+    "id": "oya-transition",
+    "name": "Oregon Youth Authority — Transition & Parole Services",
+    "org": "Oregon Youth Authority",
+    "description": "For youth in or leaving OYA custody: transition planning, housing and school/work support, and help connecting to community services. Ask your parole/probation officer or OYA staff.",
+    "categories": [
+      "housing",
+      "education",
+      "employment",
+      "mentoring"
+    ],
+    "populations": [
+      "reentry",
+      "justice"
+    ],
+    "requires": [
+      "justice",
+      "reentry"
+    ],
+    "counties": [
+      "multnomah",
+      "washington",
+      "clackamas",
+      "columbia",
+      "yamhill"
+    ],
+    "age_min": 12,
+    "age_max": 25,
+    "website": "https://www.oregon.gov/oya"
+  },
+  {
+    "id": "mpd-expungement",
+    "name": "Metropolitan Public Defender — Record Clearing",
+    "org": "Metropolitan Public Defender",
+    "description": "Free help clearing (expunging/setting aside) eligible criminal records so they don't block housing, jobs, or school.",
+    "categories": [
+      "legal",
+      "employment",
+      "housing"
+    ],
+    "populations": [
+      "reentry",
+      "justice"
+    ],
+    "requires": [
+      "justice",
+      "reentry"
+    ],
+    "counties": [
+      "multnomah",
+      "washington",
+      "clackamas"
+    ],
+    "age_min": 18,
+    "age_max": 26,
+    "website": "https://www.mpdlaw.com"
+  },
+  {
+    "id": "multco-dcj",
+    "name": "Multnomah County Department of Community Justice",
+    "org": "Multnomah County",
+    "description": "Juvenile and adult community justice services, including reentry and transition support, housing and treatment referrals for people on supervision.",
+    "categories": [
+      "housing",
+      "mentoring",
+      "employment",
+      "substance_use"
+    ],
+    "populations": [
+      "reentry",
+      "justice"
+    ],
+    "requires": [
+      "justice",
+      "reentry"
+    ],
+    "counties": [
+      "multnomah"
+    ],
+    "age_min": 12,
+    "age_max": 26,
+    "website": "https://www.multco.us/dcj"
+  },
+  {
+    "id": "sei",
+    "name": "Self Enhancement, Inc. (SEI)",
+    "org": "Self Enhancement, Inc.",
+    "description": "Culturally specific services centering Black youth and families in Portland: school-based mentoring, after-school programs, and housing stabilization including rent and energy assistance when funded.",
+    "categories": [
+      "mentoring",
+      "education",
+      "rent_assistance",
+      "utility_assistance",
+      "housing",
+      "employment"
+    ],
+    "populations": [
+      "black"
+    ],
+    "culturally_specific": [
+      "black"
+    ],
+    "counties": [
+      "multnomah"
+    ],
+    "age_min": 9,
+    "age_max": 26,
+    "website": "https://www.selfenhancement.org",
+    "flags": [
+      "culturally_specific",
+      "youth_only"
+    ]
+  },
+  {
+    "id": "black-parent-initiative",
+    "name": "Black Parent Initiative",
+    "org": "Black Parent Initiative",
+    "description": "Support for Black and multiracial parents and caregivers: parenting education, home visiting, and family support.",
+    "categories": [
+      "parenting",
+      "mentoring"
+    ],
+    "populations": [
+      "black",
+      "parenting"
+    ],
+    "culturally_specific": [
+      "black"
+    ],
+    "counties": [
+      "multnomah",
+      "washington",
+      "clackamas"
+    ],
+    "age_min": 14,
+    "age_max": 26,
+    "website": "https://www.thebpi.org",
+    "flags": [
+      "culturally_specific"
+    ]
+  },
+  {
+    "id": "apano",
+    "name": "APANO (Asian Pacific American Network of Oregon)",
+    "org": "APANO",
+    "description": "Asian and Pacific Islander community organization with youth leadership programs, community resources, and referrals in many languages.",
+    "categories": [
+      "mentoring",
+      "education"
+    ],
+    "populations": [
+      "asian",
+      "pacific_islander",
+      "immigrant"
+    ],
+    "culturally_specific": [
+      "asian",
+      "pacific_islander"
+    ],
+    "counties": [
+      "multnomah",
+      "washington"
+    ],
+    "age_min": 13,
+    "age_max": 26,
+    "languages": [
+      "en",
+      "vi",
+      "zh",
+      "other"
+    ],
+    "website": "https://www.apano.org",
+    "flags": [
+      "culturally_specific"
+    ]
+  },
+  {
+    "id": "centro-cultural",
+    "name": "Centro Cultural de Washington County",
+    "org": "Centro Cultural",
+    "description": "Latine-led community center in Cornelius serving Washington County with workforce training, youth programs, and family support including help with basic needs and bills when funded.",
+    "categories": [
+      "employment",
+      "education",
+      "mentoring",
+      "rent_assistance",
+      "utility_assistance"
+    ],
+    "populations": [
+      "latine",
+      "immigrant"
+    ],
+    "culturally_specific": [
+      "latine"
+    ],
+    "counties": [
+      "washington"
+    ],
+    "age_min": 9,
+    "age_max": 26,
+    "languages": [
+      "en",
+      "es"
+    ],
+    "website": "https://www.centrocultural.org",
+    "flags": [
+      "culturally_specific"
+    ]
+  },
+  {
+    "id": "bienestar",
+    "name": "Bienestar",
+    "org": "Bienestar",
+    "description": "Affordable housing and resident services for Latine and immigrant families in Washington County.",
+    "categories": [
+      "housing",
+      "rent_assistance"
+    ],
+    "populations": [
+      "latine",
+      "immigrant",
+      "low_income",
+      "parenting"
+    ],
+    "culturally_specific": [
+      "latine"
+    ],
+    "requires": [
+      "young_adult"
+    ],
+    "counties": [
+      "washington"
+    ],
+    "age_min": 18,
+    "age_max": 26,
+    "languages": [
+      "en",
+      "es"
+    ],
+    "website": "https://bienestar-or.org",
+    "flags": [
+      "culturally_specific"
+    ]
+  },
+  {
+    "id": "adelante-mujeres",
+    "name": "Adelante Mujeres",
+    "org": "Adelante Mujeres",
+    "description": "Education and empowerment programs for Latina women and youth in Washington County, including youth leadership and school support.",
+    "categories": [
+      "education",
+      "mentoring",
+      "employment",
+      "parenting"
+    ],
+    "populations": [
+      "latine",
+      "immigrant"
+    ],
+    "culturally_specific": [
+      "latine"
+    ],
+    "counties": [
+      "washington"
+    ],
+    "age_min": 9,
+    "age_max": 26,
+    "languages": [
+      "en",
+      "es"
+    ],
+    "website": "https://www.adelantemujeres.org",
+    "flags": [
+      "culturally_specific"
+    ]
+  },
+  {
+    "id": "nara",
+    "name": "NARA Northwest",
+    "org": "Native American Rehabilitation Association",
+    "description": "Culturally specific health care, mental health, and addiction treatment and recovery services for Native people and the wider community, including youth programs.",
+    "categories": [
+      "health",
+      "mental_health",
+      "substance_use"
+    ],
+    "populations": [
+      "native"
+    ],
+    "culturally_specific": [
+      "native"
+    ],
+    "counties": [
+      "multnomah",
+      "washington",
+      "clackamas"
+    ],
+    "age_min": 9,
+    "age_max": 26,
+    "website": "https://www.naranorthwest.org",
+    "flags": [
+      "culturally_specific"
+    ]
+  },
+  {
+    "id": "planned-parenthood-cw",
+    "name": "Planned Parenthood Columbia Willamette",
+    "org": "Planned Parenthood",
+    "description": "Confidential sexual and reproductive health care: birth control, STI testing, pregnancy testing and options, and gender-affirming care. Teens can get many services without a parent.",
+    "categories": [
+      "health",
+      "parenting"
+    ],
+    "populations": [
+      "parenting",
+      "lgbtq",
+      "trans"
+    ],
+    "counties": [
+      "multnomah",
+      "washington",
+      "clackamas",
+      "columbia",
+      "yamhill",
+      "clark"
+    ],
+    "age_min": 12,
+    "age_max": 26,
+    "website": "https://www.plannedparenthood.org",
+    "languages": [
+      "en",
+      "es"
+    ],
+    "flags": [
+      "confidential",
+      "lgbtq_affirming",
+      "online"
+    ]
+  }
+]
