@@ -63,6 +63,27 @@ npm test
 | `DB_FILE` | `data/bridge.db` | SQLite database file |
 | `SECURE_COOKIES` | off | Set to `1` when served over HTTPS |
 
+## iPhone app (Home Screen, works offline)
+
+The same app runs **entirely on an iPhone**. All youth records are kept in a database on the phone and never sent anywhere. GitHub hosts the app files for free and publishes the public data every week.
+
+**One-time setup (repository owner)**
+1. Merge this branch into `main`.
+2. On GitHub, go to **Settings → Pages**, then under **Build and deployment** choose **Source: GitHub Actions**.
+3. The **Phone app** workflow builds and publishes the app on every push to `main`, every Monday, and on demand (**Actions → Phone app → Run workflow**). The address is `https://<your-user>.github.io/Bridge-out-poverty-escape/`.
+
+**On the iPhone**
+1. Open that address in **Safari**, tap **Share → Add to Home Screen**, then open **Bridge** from the Home Screen.
+2. Tap **Staff** and choose a passcode the first time (4+ characters). It locks the staff side and can't be recovered.
+3. Use it exactly like the computer version: assisted intake, results, check-ins, validation, dashboard, Discover leads, programs.
+4. **This phone** (bottom of the staff page): **Get latest directory & leads**, **Back up** (saves a `.sqlite` file to Files/iCloud Drive), and **Restore from backup**.
+
+Notes
+- Works offline after the first open. Updates download automatically once a day when online.
+- **Back up regularly.** Deleting the app deletes its data. iPhone can also clear data for websites that aren't added to the Home Screen.
+- Discovery and website checks run in the weekly GitHub job, because phones can't download other sites' data. To watch more public pages, list them in `data/discovery-pages.json` as `[{"name": "...", "url": "https://...", "needs": ["housing"], "network": true}]`.
+- How it works: `scripts/build-mobile.js` bundles the server's own modules with `mobile/shims.js`, which stands in for Node features, and [sql.js](https://sql.js.org) (SQLite in WebAssembly). The pages call `window.LOCAL_API` (`mobile/shell.js`) instead of the network. Build locally with `npm run build:mobile`; the result is in `site/`.
+
 ## Live lookup (Multnomah County + Portland daily-access area)
 
 When a live directory is connected, **every search pulls current listings** for the youth's needs. Only listings within a reasonable daily trip of Portland are kept: within **25 miles of downtown** by coordinates, or in a nearby city when a listing has no coordinates. That covers Portland, Gresham, Troutdale, Beaverton, Hillsboro, Forest Grove, Tigard, Lake Oswego, Milwaukie, Oregon City, Happy Valley, Wilsonville, Vancouver, Camas and similar cities.

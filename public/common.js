@@ -25,12 +25,14 @@ function mount(node, ...children) {
 }
 
 async function api(path, { method = 'GET', body, headers } = {}) {
-  const res = await fetch(path, {
+  const init = {
     method,
     headers: { ...(body ? { 'Content-Type': 'application/json' } : {}), ...headers },
     body: body ? JSON.stringify(body) : undefined,
     credentials: 'same-origin',
-  });
+  };
+  // The phone app answers requests on the device (see mobile/shell.js).
+  const res = window.LOCAL_API ? await window.LOCAL_API(path, init) : await fetch(path, init);
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     const err = new Error(data.error || `Request failed (${res.status})`);

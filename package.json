@@ -10,6 +10,11 @@
   "scripts": {
     "start": "node --disable-warning=ExperimentalWarning server/index.js",
     "dev": "node --disable-warning=ExperimentalWarning --watch server/index.js",
-    "test": "node --disable-warning=ExperimentalWarning --test test/*.test.js"
+    "test": "node --disable-warning=ExperimentalWarning --test test/*.test.js",
+    "build:mobile": "node scripts/build-mobile.js",
+    "publish:data": "node --disable-warning=ExperimentalWarning scripts/publish-data.js"
+  },
+  "devDependencies": {
+    "sql.js": "^1.12.0"
   }
 }

@@ -558,7 +558,43 @@ function createDiscovery(db, { fetchImpl = fetch, timeoutMs = 60000, now = () =>
       .flatMap((r) => parseJson(r.evidence, []));
   }
 
-  return { listSources, runSource, runAll, addWebpageSource, setSourceEnabled, deleteSource, listLeads, getLead, setLeadStatus, evidenceForResource };
+  // Merges leads published elsewhere (the weekly GitHub run, for the phone
+  // app). Local review decisions (added/dismissed) are kept.
+  function importLeads(rows) {
+    const idx = directoryIndex();
+    const result = { added: 0, updated: 0 };
+    db.exec('BEGIN');
+    try {
+      for (const r of rows) {
+        const key = r.key || normalizeName(r.name);
+        if (!key) continue;
+        const cur = db.prepare('SELECT id, status FROM leads WHERE key = ?').get(key);
+        const cols = [r.city || null, r.state || null, r.address || null, r.website || null, JSON.stringify(r.needs || []),
+          JSON.stringify(r.populations || []), JSON.stringify(r.evidence || []), r.score || 0];
+        if (cur) {
+          db.prepare(
+            `UPDATE leads SET city = ?, state = ?, address = ?, website = ?, needs = ?, populations = ?, evidence = ?, score = ?,
+                    last_seen = datetime('now') WHERE id = ?`
+          ).run(...cols, cur.id);
+          result.updated++;
+        } else {
+          const resourceId = findResource(idx, key);
+          db.prepare(
+            `INSERT INTO leads (key, name, city, state, address, website, needs, populations, evidence, score, status, resource_id)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          ).run(key, r.name, ...cols, resourceId ? 'known' : 'new', resourceId);
+          result.added++;
+        }
+      }
+      db.exec('COMMIT');
+    } catch (err) {
+      db.exec('ROLLBACK');
+      throw err;
+    }
+    return result;
+  }
+
+  return { importLeads, listSources, runSource, runAll, addWebpageSource, setSourceEnabled, deleteSource, listLeads, getLead, setLeadStatus, evidenceForResource };
 }
 
 module.exports = { createDiscovery, extractLinks, nteeNeeds, normalizeName, titleCase, splitCsv, FEDERAL_PROGRAMS, CITY_COUNTY };
