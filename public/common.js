@@ -128,6 +128,12 @@ function renderResults(out, res, T, { refreshed = false } = {}) {
             res.crisis.map((r) => el('div', { class: 'crisis-item' }, el('strong', {}, r.name), contactLine(r)))))
       : null,
 
+    res.household?.for === 'others'
+      ? el('p', { class: 'muted' }, `Looking for housing for ${res.household.size ? `${res.household.size} people` : 'you and others'}${(res.household.members || []).includes('child') ? ', including children' : ''}. We’ve noted which programs may not take your whole household.`)
+      : null,
+
+    res.documents ? documentsSection(res.documents) : null,
+
     res.unmetNeeds.length
       ? el('div', { class: 'notice' },
           el('strong', {}, 'We couldn’t find a specific program for: '),
@@ -148,6 +154,24 @@ function renderResults(out, res, T, { refreshed = false } = {}) {
           : el('p', { class: 'muted' }, 'No matches yet — try 211info (call 211).')))
   );
   out.classList.remove('hidden');
+}
+
+// "Getting your documents": one expandable card per missing document.
+function documentsSection(d) {
+  const links = (ls) => (ls.length ? el('p', { class: 'small' }, ls.map((l, i) => [i ? ' · ' : '', el('a', { href: l.url, target: '_blank', rel: 'noopener noreferrer' }, l.label)])) : null);
+  return el('section', { class: 'card docs' },
+    el('h2', {}, 'Getting your documents'),
+    el('p', {}, d.order),
+    d.note ? el('p', { class: 'small muted' }, d.note) : null,
+    d.guides.map((g, i) =>
+      el('details', { class: 'doc', open: i === 0 },
+        el('summary', {}, el('strong', {}, `${i + 1}. ${g.title}`)),
+        el('p', { class: 'small muted' }, g.why),
+        el('p', { class: 'small' }, el('strong', {}, 'Cost: '), g.cost),
+        el('ol', {}, g.steps.map((s) => el('li', {}, s))),
+        g.tips.length ? el('ul', { class: 'reasons' }, g.tips.map((t) => el('li', {}, t))) : null,
+        links(g.links))),
+    el('p', { class: 'small muted' }, 'Fees and rules change — check the office’s website or call before you go.'));
 }
 
 function errorBox(err) {

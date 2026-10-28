@@ -159,6 +159,9 @@
         panel('Housing', null, bars(d.demographics.housing, T.label.HOUSING)),
         panel('Income', null, bars(d.demographics.income, T.label.INCOME)),
         panel('Family', null, bars(d.demographics.family, T.label.FAMILY)),
+        panel('Housing needed for', 'From “How many people will you be looking for housing for?”', bars(d.demographics.household)),
+        panel('Who’s in the household', null, bars(d.demographics.householdMembers, T.label.HOUSEHOLD_MEMBERS)),
+        panel('Documents youth are missing', 'Plan ID help and fee vouchers around this.', bars(d.demographics.documentsMissing, T.label.DOCUMENTS, { alt: true })),
         panel('Education', null, bars(d.demographics.education, T.label.EDUCATION)),
         panel('Employment', null, bars(d.demographics.employment, T.label.EMPLOYMENT)),
         panel('Vulnerabilities', null, bars(d.demographics.vulnerabilities, T.label.VULNERABILITIES))));
@@ -193,6 +196,16 @@
               : el('tr', {}, el('td', { colspan: '10', class: 'muted' }, 'No youth found.'))))));
   }
 
+  function householdText(h = {}) {
+    if (h.for === 'self') return 'Just themselves';
+    if (h.for !== 'others') return '—';
+    const parts = [h.size ? `${h.size} people` : 'With others'];
+    if (h.members?.length) parts.push(h.members.map((m) => T.label.HOUSEHOLD_MEMBERS[m] || m).join(', '));
+    if (h.child_ages?.length) parts.push(`children ${h.child_ages.map((a) => T.label.CHILD_AGES[a]).join(', ')}`);
+    if (h.flags?.length) parts.push(h.flags.map((f) => T.label.HOUSEHOLD_FLAGS[f] || f).join(', '));
+    return parts.join(' · ');
+  }
+
   function profileList(c) {
     const one = (key, list) => T.label[list][c[key]] || '—';
     const many = (key, list) => (c[key].length ? c[key].map((x) => T.label[list][x] || x).join(', ') : '—');
@@ -206,6 +219,8 @@
       ['Age', c.age ?? '—'], ['County', one('county', 'COUNTIES')], ['ZIP', c.zip || '—'], ['Language', one('language', 'LANGUAGES')],
       ['Race / ethnicity', many('race', 'RACE')], ['Sex', one('sex', 'SEX')], ['Gender', many('gender', 'GENDER')],
       ['LGBTQIA2S+', one('lgbtq', 'LGBTQ')], ['Family', many('family', 'FAMILY')], ['Household size', c.household_size || '—'],
+      ['Housing for', householdText(c.household)],
+      ['Documents they have', c.documents?.length ? c.documents.map((d) => T.label.DOCUMENTS[d] || d).join(', ') : '—'],
       ['Income', one('income', 'INCOME')], ['Income sources', many('income_sources', 'INCOME_SOURCES')],
       ['Housing', one('housing', 'HOUSING')], ['Education', one('education', 'EDUCATION')], ['Employment', one('employment', 'EMPLOYMENT')],
       ['Vulnerabilities', many('vulnerabilities', 'VULNERABILITIES')], ['Needs', many('needs', 'NEEDS')],

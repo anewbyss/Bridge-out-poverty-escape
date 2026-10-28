@@ -69,11 +69,22 @@ function validateIntake(body) {
     out[key] = [...new Set(v)];
   }
 
+  out.household = validateHousehold(b.household, errors);
+
+  const docs = b.documents == null ? [] : b.documents;
+  if (!Array.isArray(docs)) errors.push('documents must be a list');
+  else {
+    const bad = docs.filter((d) => !DOC_IDS.has(d));
+    if (bad.length) errors.push(`Unknown documents: ${bad.join(', ')}`);
+  }
+  out.documents = Array.isArray(docs) ? [...new Set(docs)] : [];
+
   out.zip = cleanText(b.zip, 10);
   if (out.zip && !/^\d{5}$/.test(out.zip)) errors.push('ZIP code should be 5 digits');
   const hh = b.household_size == null || b.household_size === '' ? null : Number(b.household_size);
   if (hh != null && (!Number.isInteger(hh) || hh < 1 || hh > 20)) errors.push('Household size should be 1–20');
   out.household_size = hh;
+  if (out.household.size && out.household_size == null) out.household_size = out.household.size;
   out.notes = cleanText(b.notes, 2000);
 
   if (b.consent !== true) errors.push('Please agree to how your information is used');
@@ -88,6 +99,42 @@ function validateIntake(body) {
   if (out.contact_ok && !out.contact_value) errors.push('Add a phone number or email so we can follow up');
 
   if (errors.length) throw new ValidationError(errors);
+  return out;
+}
+
+const DOC_IDS = T.ids(T.DOCUMENTS);
+const HH = { for: T.ids(T.HOUSEHOLD_FOR), members: T.ids(T.HOUSEHOLD_MEMBERS), child_ages: T.ids(T.CHILD_AGES), flags: T.ids(T.HOUSEHOLD_FLAGS) };
+
+// { for: 'self'|'others', size, members[], child_ages[], flags[] } — every part optional.
+function validateHousehold(h, errors) {
+  if (h == null || h === '') return {};
+  if (typeof h !== 'object' || Array.isArray(h)) {
+    errors.push('household must be an object');
+    return {};
+  }
+  const out = {};
+  if (h.for != null && h.for !== '') {
+    if (!HH.for.has(h.for)) errors.push(`Unknown household answer: ${h.for}`);
+    else out.for = h.for;
+  }
+  if (out.for === 'self') return { for: 'self', size: 1 };
+  if (h.size != null && h.size !== '') {
+    const n = Number(h.size);
+    if (!Number.isInteger(n) || n < 1 || n > 20) errors.push('Number of people should be 1–20');
+    else out.size = n;
+  }
+  for (const k of ['members', 'child_ages', 'flags']) {
+    const v = h[k] == null ? [] : h[k];
+    if (!Array.isArray(v)) {
+      errors.push(`household ${k} must be a list`);
+      continue;
+    }
+    const bad = v.filter((x) => !HH[k].has(x));
+    if (bad.length) errors.push(`Unknown household ${k}: ${bad.join(', ')}`);
+    else if (v.length) out[k] = [...new Set(v)];
+  }
+  if (out.members?.length || out.size > 1) out.for = 'others';
+  if (!(out.members || []).includes('child')) delete out.child_ages;
   return out;
 }
 

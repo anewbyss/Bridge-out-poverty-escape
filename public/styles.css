@@ -196,3 +196,7 @@ dialog .card { margin: 0; box-shadow: none; border: 0; }
 .resource .chips { margin: 2px 0 8px; gap: 6px; }
 .toolbar label.chip { display: inline-flex; color: var(--ink); font-size: .95rem; }
 .badge.live { background: var(--brand); color: var(--brand-ink); }
+.docs details.doc { border-top: 1px solid var(--line); padding: 10px 0; }
+.docs details.doc summary { cursor: pointer; }
+.docs ol { padding-left: 22px; margin: 8px 0; }
+.docs li { margin-bottom: 4px; }

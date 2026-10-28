@@ -9,6 +9,7 @@ const { createAuth } = require('./auth');
 const { createLive } = require('./live');
 const { createDiscovery } = require('./discovery');
 const { searchNeeds } = require('./matcher');
+const { documentGuide } = require('./documents');
 const { validateIntake, validateOutcome, validateResource, ValidationError } = require('./validate');
 
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
@@ -132,7 +133,7 @@ function createApp({ dbFile, staffPassword, sessionSecret, secureCookies = false
     if (live.enabled) await live.refreshNeeds(searchNeeds(profile));
     const source = auth.fromRequest(req) && req.headers['x-intake-source'] === 'staff' ? 'staff' : 'self';
     const r = store.createIntake(db, profile, { source });
-    return resultsPayload(r);
+    return { ...resultsPayload(r), documents: documentGuide(profile), household: profile.household };
   });
 
   // A returning youth can re-run matching against today's directory (new
@@ -143,7 +144,8 @@ function createApp({ dbFile, staffPassword, sessionSecret, secureCookies = false
     const { needs } = await readJson(req);
     const valid = needs == null ? null : validateIntake({ needs, consent: true }).needs;
     if (live.enabled) await live.refreshNeeds(searchNeeds({ ...client, needs: valid && valid.length ? valid : client.needs }));
-    return resultsPayload({ ...store.refreshSearch(db, client, { needs: valid && valid.length ? valid : null }), refCode: client.ref_code });
+    const r = store.refreshSearch(db, client, { needs: valid && valid.length ? valid : null });
+    return { ...resultsPayload({ ...r, refCode: client.ref_code }), documents: documentGuide(client), household: client.household };
   });
 
   // Follow-up by reference code: youth can see their referrals and report

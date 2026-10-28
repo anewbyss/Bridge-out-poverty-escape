@@ -63,6 +63,26 @@ npm test
 | `DB_FILE` | `data/bridge.db` | SQLite database file |
 | `SECURE_COOKIES` | off | Set to `1` when served over HTTPS |
 
+## Household and documents
+
+- **"How many people will you be looking for housing for?"** If the answer is *Me and other people*, follow-up questions appear:
+  - how many people in total
+  - who they are: children, someone pregnant, a partner, siblings they care for, adult relatives, friends
+  - the children's ages
+  - whether they need to stay together, have a disability or medical need, or have pets
+  - whether someone they're with makes them feel unsafe, which shows confidential DV lines right away and adds safety programs
+- In matching, households with children rank family-serving programs higher. Youth-only shelters get a note to ask whether the whole household can stay together.
+- **"Which of these documents do you have?"** Any that are missing produce a step-by-step **Getting your documents** plan in the results (`server/documents.js`) and add ID help as a need. The plan covers birth certificate, Social Security card, state ID, proof of address, OHP/Apple Health, school records, immigration papers, and the children's documents. It changes based on:
+  - **Area:** Oregon offices, or Washington offices for Clark County.
+  - **Age:** under-18 rules for ordering records and parent signatures.
+  - **Income and housing:** fee vouchers, Oregon's free DMV ID card for people experiencing homelessness, and Washington's free birth certificates for people experiencing homelessness.
+  - **History:**
+    - foster care: the agency must provide documents
+    - reentry: help from release counselors
+    - DV: the Address Confidentiality Program
+    - immigration: legal help first
+- Links go to official agency sites only. The dashboard shows household makeup and which documents youth are missing most.
+
 ## iPhone app (Home Screen, works offline)
 
 The same app runs **entirely on an iPhone**. All youth records are kept in a database on the phone and never sent anywhere. GitHub hosts the app files for free and publishes the public data every week.
