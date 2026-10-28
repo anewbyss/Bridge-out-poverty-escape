@@ -14,7 +14,7 @@ const COUNTIES = [
   { id: 'clark', label: 'Clark County, WA (Vancouver, Camas)' },
   { id: 'columbia', label: 'Columbia County (St. Helens, Scappoose)' },
   { id: 'yamhill', label: 'Yamhill County (McMinnville, Newberg)' },
-  { id: 'other', label: 'Somewhere else / not sure' },
+  { id: 'other', label: 'Somewhere else (outside these areas)' },
 ];
 
 const RACE = [
@@ -133,6 +133,7 @@ const VULNERABILITIES = [
   { id: 'substance_use', label: 'Alcohol or drug use concerns' },
   { id: 'chronic_illness', label: 'Chronic illness / medical needs' },
   { id: 'justice', label: 'Involved with juvenile or criminal justice' },
+  { id: 'reentry', label: 'Recently got out of jail, prison, detention, or OYA' },
   { id: 'immigrant', label: 'Immigrant, refugee, or undocumented' },
   { id: 'no_id', label: 'Missing ID or documents' },
   { id: 'no_phone', label: 'No reliable phone or internet' },
@@ -175,6 +176,12 @@ const PREFERENCES = [
   { id: 'confidential', label: 'Confidential / no parent notification' },
 ];
 
+// Extra resource features staff can set that are not youth preferences.
+const RESOURCE_FLAGS = [
+  { id: 'partner', label: 'Partner program — favored in matching' },
+  { id: 'general', label: 'General help line (does not count as a specific match)' },
+];
+
 const LANGUAGES = [
   { id: 'en', label: 'English' },
   { id: 'es', label: 'Spanish / Español' },
@@ -207,6 +214,7 @@ const POPULATIONS = [
   { id: 'dv', label: 'Survivors of violence' },
   { id: 'trafficking', label: 'Survivors of exploitation' },
   { id: 'justice', label: 'Justice-involved' },
+  { id: 'reentry', label: 'Formerly incarcerated / reentering' },
   { id: 'disability', label: 'People with disabilities' },
   { id: 'low_income', label: 'Low / no income' },
   { id: 'student', label: 'Students' },
@@ -261,6 +269,7 @@ module.exports = {
   VULNERABILITIES,
   NEEDS,
   PREFERENCES,
+  RESOURCE_FLAGS,
   LANGUAGES,
   POPULATIONS,
   OUTCOMES,

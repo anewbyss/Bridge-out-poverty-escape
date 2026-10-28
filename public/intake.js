@@ -47,22 +47,22 @@
         el('h2', {}, 'About you'),
         el('div', { class: 'row' },
           el('div', {},
-            el('label', { class: 'label', for: 'f-age' }, 'How old are you? *'),
+            el('label', { class: 'label', for: 'f-age' }, 'How old are you?'),
             el('input', { type: 'number', name: 'age', id: 'f-age', min: T.AGE_MIN, max: T.AGE_MAX, inputmode: 'numeric', required: true })),
           el('div', {},
             el('label', { class: 'label', for: 'f-zip' }, 'ZIP code (optional)'),
             el('input', { type: 'text', name: 'zip', id: 'f-zip', inputmode: 'numeric', maxlength: 5, autocomplete: 'postal-code' }))),
         el('br'),
-        field('Where are you staying or spending most of your time? *', null, chips('county', T.COUNTIES, 'radio')),
+        field('Where are you staying or spending most of your time?', 'Not sure? Skip it — we’ll show programs from every area and say where each one works.',
+          chips('county', [...T.COUNTIES, { id: '', label: 'Not sure' }], 'radio')),
         el('label', { class: 'label', for: 'f-language' }, 'What language do you prefer?'),
         select('language', T.LANGUAGES, 'English'),
       ],
       check: (v) => {
         const e = [];
-        if (!Number.isInteger(v.age)) e.push('Please enter your age.');
-        else if (v.age < T.AGE_MIN || v.age > T.AGE_MAX)
+        if (v.age != null && !Number.isInteger(v.age)) e.push('Age should be a whole number.');
+        else if (v.age != null && (v.age < T.AGE_MIN || v.age > T.AGE_MAX))
           e.push(`This tool is for ages ${T.AGE_MIN}–${T.AGE_MAX}. Call or text 211 (text your ZIP to 898211) for help at any age.`);
-        if (!v.county) e.push('Please choose where you are.');
         if (v.zip && !/^\d{5}$/.test(v.zip)) e.push('ZIP code should be 5 digits.');
         return e;
       },
@@ -113,12 +113,11 @@
       title: 'What you need',
       render: () => [
         el('h2', {}, 'What do you need help with?'),
-        field('Pick everything that would help *', null, groupedChips('needs', T.NEEDS)),
+        field('Pick everything that would help', 'If you skip this, we’ll show our main housing, rent, and utility help.', groupedChips('needs', T.NEEDS)),
         field('What matters to you in a program?', 'Optional — we’ll put programs like this first.', chips('preferences', T.PREFERENCES)),
         el('label', { class: 'label', for: 'f-notes' }, 'Anything else you want us to know? (optional)'),
         el('textarea', { name: 'notes', id: 'f-notes', maxlength: 2000 }),
       ],
-      check: (v) => (!v.needs.length && !v.vulnerabilities.length && !['street', 'car', 'at_risk'].includes(v.housing) ? ['Pick at least one thing you need help with.'] : []),
     },
     {
       title: 'Privacy',
@@ -131,9 +130,18 @@
             el('li', {}, 'let you come back with your code and tell us how it went, and'),
             el('li', {}, 'show our community which needs aren’t being met and what gets in the way.')),
           el('p', { class: 'small' }, 'Staff at our program can see your answers. We never sell your information. Reports only show totals. You can ask staff to delete your record any time using your code.')),
+        field('How much should we save?', null,
+          el('div', { class: 'chips', role: 'radiogroup' },
+            el('label', { class: 'chip', for: 'f-save-full' },
+              el('input', { type: 'radio', name: 'save', value: 'full', id: 'f-save-full', checked: true }),
+              'Save my answers — helps staff follow up and fix what isn’t working'),
+            el('label', { class: 'chip', for: 'f-save-private' },
+              el('input', { type: 'radio', name: 'save', value: 'private', id: 'f-save-private' }),
+              'Private search — only keep my age, area, and needs')),
+          el('p', { class: 'hint' }, 'Either way, we use all your answers to find matches, and you get a check-in code.')),
         el('label', { class: 'chip' }, el('input', { type: 'checkbox', name: 'consent', id: 'f-consent' }), 'I understand and want to continue *'),
         el('br'), el('br'),
-        el('label', { class: 'chip' }, el('input', { type: 'checkbox', name: 'contact_ok', id: 'f-contact_ok' }), 'It’s okay for a staff member to contact me to check in'),
+        el('label', { class: 'chip', id: 'contactChip' }, el('input', { type: 'checkbox', name: 'contact_ok', id: 'f-contact_ok' }), 'It’s okay for a staff member to contact me to check in'),
         el('div', { id: 'contactFields', class: 'hidden' },
           el('br'),
           el('div', { class: 'row' },
@@ -159,20 +167,35 @@
   const stepEls = steps.map((s) => el('div', { class: 'step hidden' }, s.render()));
   stepsEl.append(...stepEls);
   const progress = document.getElementById('progress');
-  progress.append(...steps.map(() => el('span')));
 
   const contactToggle = form.querySelector('#f-contact_ok');
-  contactToggle.addEventListener('change', () =>
-    document.getElementById('contactFields').classList.toggle('hidden', !contactToggle.checked));
+  const syncContact = () => {
+    const priv = form.querySelector('#f-save-private').checked;
+    if (priv) contactToggle.checked = false;
+    document.getElementById('contactChip').classList.toggle('hidden', priv);
+    document.getElementById('contactFields').classList.toggle('hidden', !contactToggle.checked);
+  };
+  contactToggle.addEventListener('change', syncContact);
+  for (const r of form.querySelectorAll('input[name=save]')) r.addEventListener('change', syncContact);
 
+  // Quick search asks only the basics; full search asks everything. Every
+  // question is optional either way, and "Skip to the end" is always there.
+  const QUICK = [0, 5, 6];
+  let order = steps.map((_, i) => i);
+  let pos = 0;
   let current = 0;
-  function show(i) {
-    current = i;
+  const skipBtn = el('button', { class: 'btn secondary', type: 'button', onclick: () => show(order.length - 1) }, 'Skip to the end');
+  nextBtn.before(skipBtn);
+
+  function show(p) {
+    pos = p;
+    const i = (current = order[p]);
     stepEls.forEach((s, j) => s.classList.toggle('hidden', j !== i));
-    [...progress.children].forEach((p, j) => p.classList.toggle('done', j <= i));
-    document.getElementById('stepCount').textContent = `Step ${i + 1} of ${steps.length} · ${steps[i].title}`;
-    backBtn.style.visibility = i === 0 ? 'hidden' : 'visible';
-    nextBtn.textContent = i === steps.length - 1 ? 'Show my matches' : 'Next';
+    mount(progress, order.map((_, j) => el('span', { class: j <= p ? 'done' : '' })));
+    document.getElementById('stepCount').textContent = `Step ${p + 1} of ${order.length} · ${steps[i].title}`;
+    backBtn.style.visibility = p === 0 ? 'hidden' : 'visible';
+    skipBtn.classList.toggle('hidden', p >= order.length - 1);
+    nextBtn.textContent = p === order.length - 1 ? 'Show my matches' : 'Next';
     mount(errorsEl);
     const first = stepEls[i].querySelector('h2');
     if (first) {
@@ -208,6 +231,7 @@
       preferences: many('preferences'),
       notes: one('notes'),
       consent: fd.get('consent') === 'on',
+      confidential: fd.get('save') === 'private',
       contact_ok: fd.get('contact_ok') === 'on',
       contact_method: one('contact_method'),
       contact_value: one('contact_value'),
@@ -219,12 +243,12 @@
     errorsEl.scrollIntoView({ block: 'center' });
   }
 
-  backBtn.addEventListener('click', () => current > 0 && show(current - 1));
+  backBtn.addEventListener('click', () => pos > 0 && show(pos - 1));
   nextBtn.addEventListener('click', async () => {
     const v = values();
     const errs = steps[current].check ? steps[current].check(v) : [];
     if (errs.length) return showErrors(errs);
-    if (current < steps.length - 1) return show(current + 1);
+    if (pos < order.length - 1) return show(pos + 1);
 
     nextBtn.disabled = true;
     nextBtn.textContent = 'Finding matches…';
@@ -235,7 +259,8 @@
         headers: staffMode ? { 'X-Intake-Source': 'staff' } : {},
       });
       form.classList.add('hidden');
-      renderResults(result);
+      renderResults(document.getElementById('results'), result, T);
+      window.scrollTo({ top: 0 });
     } catch (err) {
       mount(errorsEl, errorBox(err));
     } finally {
@@ -245,70 +270,13 @@
   });
   form.addEventListener('submit', (e) => e.preventDefault());
 
-  document.getElementById('start').addEventListener('click', () => {
+  function begin(quick) {
+    order = quick ? QUICK : steps.map((_, i) => i);
     document.getElementById('intro').classList.add('hidden');
     form.classList.remove('hidden');
     show(0);
-  });
-
-  // ---------- Results ----------
-  function resourceCard(m) {
-    const r = m.resource;
-    return el('article', { class: 'card resource' },
-      el('h3', {}, r.name, ' ', r.crisis ? el('span', { class: 'badge crisis' }, '24/7') : null),
-      r.org && r.org !== r.name ? el('div', { class: 'org' }, r.org) : null,
-      el('p', {}, r.description),
-      contactLine(r),
-      r.hours ? el('p', { class: 'small muted' }, `Hours: ${r.hours}`) : null,
-      r.eligibility ? el('p', { class: 'small muted' }, `Who qualifies: ${r.eligibility}`) : null,
-      m.reasons.length ? el('ul', { class: 'reasons' }, m.reasons.map((x) => el('li', {}, x))) : null,
-      m.alsoHelpsWith.length ? el('p', { class: 'small muted' }, `Also helps with: ${m.alsoHelpsWith.join(', ')}`) : null,
-      m.warnings.length ? el('ul', { class: 'warnings' }, m.warnings.map((x) => el('li', {}, x))) : null);
   }
+  document.getElementById('start').addEventListener('click', () => begin(false));
+  document.getElementById('quick').addEventListener('click', () => begin(true));
 
-  function renderResults(res) {
-    const out = document.getElementById('results');
-    const shown = new Set();
-    const total = new Set(res.byNeed.flatMap((g) => g.matches.map((m) => m.resource.id))).size;
-    mount(out,
-      el('div', { class: 'card' },
-        el('h1', {}, `We found ${total} program${total === 1 ? '' : 's'} for you`),
-        el('p', {}, 'Your check-in code:'),
-        el('p', {}, el('span', { class: 'refcode' }, res.refCode)),
-        el('p', { class: 'small muted' },
-          'Save this code (screenshot it or write it down). Come back to ',
-          el('a', { href: `/followup?code=${encodeURIComponent(res.refCode)}` }, 'Check in'),
-          ' after you reach out, and tell us what happened — it helps us fix what isn’t working.'),
-        el('div', { class: 'actions no-print' },
-          el('button', { class: 'btn secondary', type: 'button', onclick: () => window.print() }, 'Print / save as PDF'),
-          el('a', { class: 'btn secondary', href: '/' }, 'Start over'))),
-
-      res.crisis.length
-        ? el('section', { class: 'card crisis-box' },
-            el('h2', {}, 'Support right now, 24/7'),
-            el('p', {}, 'You don’t have to wait. These lines are free and confidential.'),
-            el('div', { class: 'crisis-list' },
-              res.crisis.map((r) => el('div', { class: 'crisis-item' }, el('strong', {}, r.name), contactLine(r)))))
-        : null,
-
-      res.unmetNeeds.length
-        ? el('div', { class: 'notice' },
-            el('strong', {}, 'We couldn’t find a specific program near you for: '),
-            res.unmetNeeds.map((n) => T.label.NEEDS[n]).join(', '),
-            '. 211info can search more options — call 211 or text your ZIP to 898211. We’ve logged this gap so our team can work on it.')
-        : null,
-
-      res.byNeed.map((g) =>
-        el('section', { class: 'need-group' },
-          el('h2', {}, g.label, g.implied ? el('span', { class: 'badge warn' }, 'Added based on your answers') : null),
-          g.matches.length
-            ? g.matches.map((m) =>
-                shown.has(m.resource.id)
-                  ? el('p', { class: 'card small' }, el('strong', {}, m.resource.name), ' — listed above')
-                  : (shown.add(m.resource.id), resourceCard(m)))
-            : el('p', { class: 'muted' }, 'No matches yet — try 211info (call 211).')))
-    );
-    out.classList.remove('hidden');
-    window.scrollTo({ top: 0 });
-  }
 })();

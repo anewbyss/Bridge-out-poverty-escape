@@ -20,6 +20,7 @@ test('seed resources only use known taxonomy ids', () => {
     counties: new Set([...T.ids(T.COUNTIES), 'all']),
     languages: T.ids(T.LANGUAGES),
     culturally_specific: T.ids(T.RACE),
+    flags: new Set([...T.ids(T.PREFERENCES), ...T.ids(T.RESOURCE_FLAGS)]),
   };
   const seen = new Set();
   for (const r of seed) {
@@ -128,4 +129,57 @@ test('unverified resources carry a call-ahead warning; recent ones do not', () =
   const oi = g.matches.find((m) => m.resource.id === 'outside-in');
   assert.ok(!oi.warnings.some((w) => w.includes('verified')));
   assert.ok(g.matches.some((m) => m.warnings.some((w) => w.includes('not yet verified'))));
+});
+
+test('works with minimal details: no age, area, or needs', () => {
+  const res = match({ preferences: [], needs: [], vulnerabilities: [] }, resources);
+  assert.ok(res.usedDefaults);
+  assert.deepEqual(res.needs.sort(), ['housing', 'rent_assistance', 'utility_assistance']);
+  for (const g of res.byNeed) assert.ok(g.matches.length > 0, g.need);
+  assert.equal(res.crisis.length, 0);
+  // Without an area every program is eligible, so each card says where it works.
+  const pge = groupFor(res, 'utility_assistance').matches.find((m) => m.resource.id === 'pge-bill-discount');
+  if (pge) assert.ok(pge.warnings.some((w) => w.startsWith('Serves')));
+});
+
+test('unknown age keeps age-limited programs but warns about the ages', () => {
+  const res = match({ ...base, age: null, needs: ['utility_assistance'] }, resources);
+  const m = groupFor(res, 'utility_assistance').matches.find((x) => x.resource.id === 'multco-energy');
+  assert.ok(m, 'adult-only program should still be shown');
+  assert.ok(m.warnings.includes('Serves ages 18–26'));
+});
+
+test('partner programs are favored', () => {
+  const profile = { ...base, county: 'yamhill', needs: ['food'] };
+  const plain = groupFor(match(profile, resources), 'food').matches.find((m) => m.resource.id === 'oregon-food-bank');
+  const partnered = resources.map((r) => (r.id === 'oregon-food-bank' ? { ...r, flags: [...r.flags, 'partner'] } : r));
+  const fav = groupFor(match(profile, partnered), 'food').matches.find((m) => m.resource.id === 'oregon-food-bank');
+  assert.ok(fav.score >= plain.score + 10);
+  assert.ok(fav.reasons.some((x) => x.includes('Partner')));
+});
+
+test('staff-validated connections boost a program', () => {
+  const profile = { ...base, income: 'none', vulnerabilities: ['justice'], needs: ['employment'] };
+  const score = (stats) => groupFor(match(profile, resources, stats), 'employment').matches.find((m) => m.resource.id === 'portland-youthbuilders').score;
+  const reported = score({ 'portland-youthbuilders': { finals: 4, successes: 2, validated: 0, barriers: {} } });
+  const confirmed = score({ 'portland-youthbuilders': { finals: 4, successes: 2, validated: 2, barriers: {} } });
+  assert.ok(confirmed > reported);
+});
+
+test('formerly incarcerated youth get reentry programs; others do not', () => {
+  const reentry = match({ ...base, age: 21, vulnerabilities: ['reentry'], needs: ['housing', 'legal'] }, resources);
+  assert.ok(ids(groupFor(reentry, 'housing')).includes('bridges-to-change'));
+  assert.ok(ids(groupFor(reentry, 'legal')).includes('mpd-expungement'));
+  const other = match({ ...base, age: 21, needs: ['housing', 'legal'] }, resources);
+  assert.ok(!ids(groupFor(other, 'housing')).includes('bridges-to-change'));
+  assert.ok(!ids(groupFor(other, 'legal')).includes('mpd-expungement'));
+});
+
+test('DV survivors get confidential and culturally specific safety programs', () => {
+  const res = match({ ...base, race: ['native'], vulnerabilities: ['dv'], preferences: ['confidential'] }, resources);
+  const safety = groupFor(res, 'safety');
+  assert.ok(safety.implied);
+  assert.ok(ids(safety).includes('stronghearts'));
+  assert.ok(safety.matches.every((m) => m.resource.flags.includes('confidential')));
+  assert.ok(res.crisis.some((r) => r.id === 'national-dv-hotline'));
 });

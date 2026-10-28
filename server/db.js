@@ -39,6 +39,10 @@ CREATE TABLE IF NOT EXISTS resources (
   active INTEGER NOT NULL DEFAULT 1,
   last_verified TEXT,
   verified_by TEXT,
+  edited INTEGER NOT NULL DEFAULT 0,
+  source TEXT NOT NULL DEFAULT 'seed',
+  link_status TEXT,
+  link_checked_at TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -48,7 +52,8 @@ CREATE TABLE IF NOT EXISTS clients (
   ref_code TEXT NOT NULL UNIQUE,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   source TEXT NOT NULL DEFAULT 'self',
-  age INTEGER NOT NULL,
+  age INTEGER,
+  confidential INTEGER NOT NULL DEFAULT 0,
   county TEXT,
   zip TEXT,
   race TEXT NOT NULL DEFAULT '[]',
@@ -92,6 +97,9 @@ CREATE TABLE IF NOT EXISTS referrals (
   rank INTEGER NOT NULL DEFAULT 0,
   status TEXT NOT NULL DEFAULT 'suggested',
   barriers TEXT NOT NULL DEFAULT '[]',
+  validated_at TEXT,
+  validated_by TEXT,
+  validation_note TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -133,6 +141,7 @@ function resourceFromRow(row) {
   if (r) {
     r.crisis = !!r.crisis;
     r.active = !!r.active;
+    r.edited = !!r.edited;
   }
   return r;
 }
@@ -171,15 +180,59 @@ function normalizeResource(input) {
   };
 }
 
+// Columns added after the first release. CREATE TABLE IF NOT EXISTS leaves
+// older databases alone, so add anything missing here.
+const ADDED_COLUMNS = {
+  resources: {
+    edited: 'INTEGER NOT NULL DEFAULT 0',
+    source: "TEXT NOT NULL DEFAULT 'seed'",
+    link_status: 'TEXT',
+    link_checked_at: 'TEXT',
+  },
+  clients: { confidential: 'INTEGER NOT NULL DEFAULT 0' },
+  referrals: { validated_at: 'TEXT', validated_by: 'TEXT', validation_note: 'TEXT' },
+};
+
+function migrate(db) {
+  for (const [table, cols] of Object.entries(ADDED_COLUMNS)) {
+    const have = new Set(db.prepare(`PRAGMA table_info(${table})`).all().map((c) => c.name));
+    for (const [col, type] of Object.entries(cols)) if (!have.has(col)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${type}`);
+  }
+  // Age became optional. SQLite can't drop NOT NULL in place, so rebuild the
+  // table (the documented 12-step recipe, with foreign keys off).
+  const age = db.prepare('PRAGMA table_info(clients)').all().find((c) => c.name === 'age');
+  if (age && age.notnull) {
+    const cols = db.prepare('PRAGMA table_info(clients)').all().map((c) => c.name).join(', ');
+    const create = db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'clients'").get().sql;
+    db.exec('PRAGMA foreign_keys = OFF');
+    db.exec('BEGIN');
+    try {
+      db.exec(create.replace(/CREATE TABLE "?clients"?/, 'CREATE TABLE clients_new').replace(/age INTEGER NOT NULL/, 'age INTEGER'));
+      db.exec(`INSERT INTO clients_new (${cols}) SELECT ${cols} FROM clients`);
+      db.exec('DROP TABLE clients');
+      db.exec('ALTER TABLE clients_new RENAME TO clients');
+      db.exec('COMMIT');
+    } catch (err) {
+      db.exec('ROLLBACK');
+      throw err;
+    } finally {
+      db.exec('PRAGMA foreign_keys = ON');
+    }
+  }
+}
+
 function open(file) {
   if (file !== ':memory:') fs.mkdirSync(path.dirname(file), { recursive: true });
   const db = new DatabaseSync(file);
   db.exec(SCHEMA);
+  migrate(db);
   return db;
 }
 
-function upsertResource(db, input) {
-  const r = normalizeResource(input);
+// `extra` sets bookkeeping columns (edited, source) that aren't part of the
+// resource's public shape.
+function upsertResource(db, input, extra = {}) {
+  const r = { ...normalizeResource(input), ...extra };
   const cols = Object.keys(r);
   const values = cols.map((c) => (RESOURCE_JSON.includes(c) ? JSON.stringify(r[c]) : r[c]));
   db.prepare(
@@ -203,26 +256,50 @@ function listResources(db, { includeInactive = false } = {}) {
   return db.prepare(sql).all().map(resourceFromRow);
 }
 
-// Loads the seed directory only into an empty table, so staff edits are never
-// overwritten on restart.
-function seedIfEmpty(db) {
-  const { n } = db.prepare('SELECT COUNT(*) AS n FROM resources').get();
-  if (n > 0) return 0;
-  const seed = JSON.parse(fs.readFileSync(SEED_FILE, 'utf8'));
+/**
+ * Merges a list of resources into the directory.
+ * - New ids are always added.
+ * - With `updateExisting`, entries staff haven't edited or verified are
+ *   refreshed from the list. Staff-edited or verified entries are never touched.
+ */
+function mergeResources(db, list, { updateExisting = false, source = 'seed' } = {}) {
+  const result = { added: 0, updated: 0, kept: 0 };
+  const existing = db.prepare('SELECT edited, last_verified FROM resources WHERE id = ?');
   db.exec('BEGIN');
   try {
-    for (const r of seed) upsertResource(db, r);
+    for (const r of list) {
+      const cur = existing.get(r.id);
+      if (!cur) {
+        upsertResource(db, r, { source, edited: 0 });
+        result.added++;
+      } else if (updateExisting && !cur.edited && !cur.last_verified) {
+        upsertResource(db, r, { source, edited: 0 });
+        result.updated++;
+      } else result.kept++;
+    }
     db.exec('COMMIT');
   } catch (err) {
     db.exec('ROLLBACK');
     throw err;
   }
-  return seed.length;
+  return result;
+}
+
+function readSeed() {
+  return JSON.parse(fs.readFileSync(SEED_FILE, 'utf8'));
+}
+
+// Adds any starter programs the database doesn't have yet (on every start),
+// without changing existing entries.
+function syncSeed(db) {
+  return mergeResources(db, readSeed()).added;
 }
 
 module.exports = {
   open,
-  seedIfEmpty,
+  syncSeed,
+  readSeed,
+  mergeResources,
   upsertResource,
   getResource,
   listResources,

@@ -51,6 +51,36 @@
     return f;
   }
 
+  function refreshPanel() {
+    const msg = el('div', { 'aria-live': 'polite' });
+    const needs = el('div', { class: 'chips' },
+      T.NEEDS.map((n) => el('label', { class: 'chip' }, el('input', { type: 'checkbox', value: n.id }), n.label)));
+    const btn = el('button', { class: 'btn', type: 'button' }, 'Refresh my matches');
+    btn.addEventListener('click', async () => {
+      const picked = [...needs.querySelectorAll('input:checked')].map((i) => i.value);
+      btn.disabled = true;
+      try {
+        const res = await api(`/api/followup/${encodeURIComponent(code)}/refresh`, {
+          method: 'POST',
+          body: picked.length ? { needs: picked } : {},
+        });
+        renderResults(document.getElementById('refreshed'), res, T, { refreshed: true });
+        mount(msg);
+        await lookup(code, { keepResults: true });
+        document.getElementById('refreshed').scrollIntoView();
+      } catch (err) {
+        mount(msg, errorBox(err));
+      } finally {
+        btn.disabled = false;
+      }
+    });
+    return el('section', { class: 'card no-print' },
+      el('h2', {}, 'Need more options?'),
+      el('p', {}, 'Programs and openings change. Refresh to search again with the newest list — we’ll also use what other young people said worked.'),
+      el('details', {}, el('summary', {}, 'Change what I need help with (optional)'), needs),
+      el('div', { class: 'actions' }, btn, msg));
+  }
+
   function render(data) {
     const byNeed = new Map();
     for (const r of data.referrals) {
@@ -58,7 +88,9 @@
       byNeed.get(r.need).push(r);
     }
     mount(list,
-      el('p', { class: 'muted' }, `Code ${data.refCode} · searched ${fmtDate(data.createdAt)} · ${data.referrals.length} programs`),
+      refreshPanel(),
+      el('h2', {}, 'Programs we suggested'),
+      el('p', { class: 'muted' }, `Code ${data.refCode} · first searched ${fmtDate(data.createdAt)} · ${data.referrals.length} programs`),
       [...byNeed].map(([need, refs]) =>
         el('section', { class: 'need-group' },
           el('h2', {}, T.label.NEEDS[need] || need),
@@ -66,14 +98,16 @@
             el('details', { class: 'card' },
               el('summary', {},
                 el('strong', {}, r.name), ' ',
-                el('span', { class: r.status === 'received' ? 'badge' : 'badge warn' }, T.label.OUTCOMES[r.status] || r.status)),
+                el('span', { class: r.status === 'received' ? 'badge' : 'badge warn' }, T.label.OUTCOMES[r.status] || r.status),
+                r.validated_at ? el('span', { class: 'badge' }, ' ✓ Confirmed by staff') : null),
               contactLine(r),
               outcomeForm(r)))))
     );
   }
 
-  async function lookup(c) {
+  async function lookup(c, { keepResults = false } = {}) {
     mount(errBox);
+    if (!keepResults) mount(document.getElementById('refreshed'));
     try {
       const data = await api(`/api/followup/${encodeURIComponent(c)}`);
       code = data.refCode;

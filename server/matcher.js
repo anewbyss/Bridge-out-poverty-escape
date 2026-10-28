@@ -12,6 +12,11 @@ const BENEFITS = new Set(['snap', 'tanf', 'ssi']);
 const STUDENT = new Set(['in_school_k8', 'in_high_school', 'ged_progress', 'in_college']);
 const RACE_TAGS = new Set(['native', 'black', 'latine', 'asian', 'pacific_islander']);
 const CRISIS_VULNS = new Set(T.VULNERABILITIES.filter((v) => v.crisis).map((v) => v.id));
+const AGE_TAGS = ['minor', 'young_adult'];
+// When someone skips the needs question we still show something useful: the
+// program's core housing-stability help.
+const DEFAULT_NEEDS = ['rent_assistance', 'utility_assistance', 'housing'];
+const countyLabel = Object.fromEntries(T.COUNTIES.map((c) => [c.id, c.label.split(' (')[0]]));
 
 const needLabel = Object.fromEntries(T.NEEDS.map((n) => [n.id, n.label]));
 const popLabel = Object.fromEntries(T.POPULATIONS.map((p) => [p.id, p.label]));
@@ -21,7 +26,7 @@ const barrierLabel = Object.fromEntries(T.BARRIERS.map((b) => [b.id, b.label]));
 // Turns intake answers into population tags that resources can target.
 function deriveTags(p) {
   const tags = new Set();
-  tags.add(p.age < 18 ? 'minor' : 'young_adult');
+  if (p.age != null) tags.add(p.age < 18 ? 'minor' : 'young_adult');
   const gender = p.gender || [];
   if (p.lgbtq === 'yes' || p.lgbtq === 'questioning' || gender.some((g) => TRANS_GENDERS.has(g))) tags.add('lgbtq');
   if (gender.some((g) => TRANS_GENDERS.has(g))) tags.add('trans');
@@ -34,7 +39,8 @@ function deriveTags(p) {
   if (v.includes('immigrant')) tags.add('immigrant');
   if (v.includes('dv') || v.includes('abuse_minor')) tags.add('dv');
   if (v.includes('trafficking')) tags.add('trafficking');
-  if (v.includes('justice')) tags.add('justice');
+  if (v.includes('justice') || v.includes('reentry') || p.housing === 'institution') tags.add('justice');
+  if (v.includes('reentry')) tags.add('reentry');
   if (v.includes('disability')) tags.add('disability');
   if (LOW_INCOME.has(p.income) || (p.income_sources || []).some((s) => BENEFITS.has(s))) tags.add('low_income');
   if (STUDENT.has(p.education)) tags.add('student');
@@ -50,16 +56,20 @@ function impliedNeeds(p) {
   if (v.includes('dv') || v.includes('trafficking') || v.includes('abuse_minor')) out.add('safety');
   if (v.includes('self_harm') || v.includes('unsafe_now')) out.add('crisis');
   for (const n of p.needs || []) out.delete(n);
+  if (!(p.needs || []).length && !out.size) for (const n of DEFAULT_NEEDS) out.add(n);
   return [...out];
 }
 
+// Missing answers never exclude a program: with no age we don't filter on age,
+// and with no area we include every area (and say which areas it serves).
 function isEligible(resource, p, tags) {
   if (!resource.active) return false;
-  if (p.age < resource.age_min || p.age > resource.age_max) return false;
+  if (p.age != null && (p.age < resource.age_min || p.age > resource.age_max)) return false;
   const counties = resource.counties || [];
-  if (!counties.includes('all') && !counties.includes(p.county)) return false;
+  if (p.county && !counties.includes('all') && !counties.includes(p.county)) return false;
   const req = resource.requires || [];
-  if (req.length && !req.some((t) => tags.includes(t))) return false;
+  const have = p.age == null ? [...tags, ...AGE_TAGS] : tags;
+  if (req.length && !req.some((t) => have.includes(t))) return false;
   return true;
 }
 
@@ -120,6 +130,25 @@ function scoreResource(resource, p, tags, needs, stats, now) {
     }
   }
 
+  if (flags.has('partner')) {
+    score += 10;
+    reasons.push('Partner program — we work with them directly');
+  }
+  if (flags.has('confidential') && (prefs.has('confidential') || tags.includes('dv') || tags.includes('trafficking'))) {
+    score += 4;
+    if (!prefs.has('confidential')) reasons.push('Confidential');
+  }
+
+  if (p.age == null && (resource.age_min > T.AGE_MIN || resource.age_max < T.AGE_MAX))
+    warnings.push(`Serves ages ${resource.age_min}–${resource.age_max}`);
+  const counties = resource.counties || [];
+  if (!p.county && !counties.includes('all'))
+    warnings.push(`Serves ${counties.filter((c) => c !== 'other').map((c) => countyLabel[c] || c).join(', ')}`);
+  if (resource.link_status && resource.link_status !== 'ok') {
+    score -= 3;
+    warnings.push('Website didn’t load last time we checked — try calling');
+  }
+
   if (flags.has('youth_only')) score += 5;
   // Programs built for a narrow age band around this youth usually fit better
   // than "everyone welcome" services.
@@ -138,10 +167,17 @@ function scoreResource(resource, p, tags, needs, stats, now) {
 
   // Learn from what happened to past referrals.
   const s = stats && stats[resource.id];
-  if (s && s.finals >= 3) {
-    const rate = (s.successes + 1) / (s.finals + 2);
+  // Connections staff confirmed with the provider count double: they are the
+  // most trustworthy signal we have.
+  const validated = (s && s.validated) || 0;
+  if (s && s.finals + validated >= 3) {
+    const rate = (s.successes + validated + 1) / (s.finals + validated + 2);
     score += Math.round((rate - 0.5) * 30);
-    reasons.push(`${Math.round(rate * 100)}% of youth referred here got help`);
+    reasons.push(`${Math.round((s.successes / Math.max(s.finals, 1)) * 100)}% of youth referred here got help`);
+  }
+  if (validated) {
+    score += Math.min(validated, 5);
+    reasons.push(`${validated} connection${validated === 1 ? '' : 's'} confirmed by staff`);
   }
   if (s && s.barriers) {
     const common = Object.entries(s.barriers)
@@ -162,9 +198,10 @@ function scoreResource(resource, p, tags, needs, stats, now) {
 }
 
 function summarize(resource) {
-  const { id, name, org, description, phone, text, website, address, hours, eligibility, crisis, last_verified, flags } =
-    resource;
-  return { id, name, org, description, phone, text, website, address, hours, eligibility, crisis, last_verified, flags };
+  const { id, name, org, description, phone, text, website, address, hours, eligibility, crisis, last_verified, flags,
+    counties, age_min, age_max, culturally_specific } = resource;
+  return { id, name, org, description, phone, text, website, address, hours, eligibility, crisis, last_verified, flags,
+    counties, age_min, age_max, culturally_specific };
 }
 
 /**
@@ -177,6 +214,7 @@ function match(profile, resources, stats = {}, now = Date.now()) {
   const tags = deriveTags(profile);
   const implied = impliedNeeds(profile);
   const needs = [...new Set([...implied, ...(profile.needs || [])])];
+  const usedDefaults = !(profile.needs || []).length && DEFAULT_NEEDS.every((n) => implied.includes(n));
   const eligible = resources.filter((r) => isEligible(r, profile, tags));
 
   const scored = new Map();
@@ -199,6 +237,7 @@ function match(profile, resources, stats = {}, now = Date.now()) {
       need,
       label: needLabel[need] || need,
       implied: implied.includes(need),
+      defaulted: usedDefaults && DEFAULT_NEEDS.includes(need),
       matches: matches.slice(0, MAX_PER_NEED).map((m) => ({
         resource: summarize(m.resource),
         score: m.score,
@@ -222,7 +261,7 @@ function match(profile, resources, stats = {}, now = Date.now()) {
         .map(({ r }) => summarize(r))
     : [];
 
-  return { tags, impliedNeeds: implied, needs, crisis, byNeed, unmetNeeds: unmet };
+  return { tags, impliedNeeds: implied, usedDefaults, needs, crisis, byNeed, unmetNeeds: unmet };
 }
 
-module.exports = { match, deriveTags, impliedNeeds, isEligible, STALE_DAYS };
+module.exports = { match, deriveTags, impliedNeeds, isEligible, STALE_DAYS, DEFAULT_NEEDS };

@@ -45,13 +45,13 @@ function send(res, status, body, headers = {}) {
   res.end(isJson ? JSON.stringify(body) : body);
 }
 
-function readJson(req) {
+function readJson(req, limit = MAX_BODY) {
   return new Promise((resolve, reject) => {
     let size = 0;
     const chunks = [];
     req.on('data', (c) => {
       size += c.length;
-      if (size > MAX_BODY) {
+      if (size > limit) {
         reject(new HttpError(413, 'Request too large'));
         req.destroy();
       } else chunks.push(c);
@@ -88,13 +88,22 @@ function serveStatic(req, res, pathname) {
 
 // Public view of a resource for the directory page.
 const publicResource = (r) => {
-  const { verified_by, created_at, updated_at, active, ...rest } = r;
+  const { verified_by, created_at, updated_at, active, edited, source, link_checked_at, ...rest } = r;
   return rest;
 };
 
-function createApp({ dbFile, staffPassword, sessionSecret, secureCookies = false }) {
+const resultsPayload = (r) => ({
+  refCode: r.refCode,
+  crisis: r.crisis,
+  byNeed: r.byNeed,
+  unmetNeeds: r.unmetNeeds,
+  impliedNeeds: r.impliedNeeds,
+  usedDefaults: r.usedDefaults,
+});
+
+function createApp({ dbFile, staffPassword, sessionSecret, secureCookies = false, linkFetch = fetch }) {
   const db = db_.open(dbFile);
-  const seeded = db_.seedIfEmpty(db);
+  const seeded = db_.syncSeed(db);
   const auth = createAuth({ password: staffPassword, secret: sessionSecret });
 
   const routes = [];
@@ -115,7 +124,17 @@ function createApp({ dbFile, staffPassword, sessionSecret, secureCookies = false
     const profile = validateIntake(await readJson(req));
     const source = auth.fromRequest(req) && req.headers['x-intake-source'] === 'staff' ? 'staff' : 'self';
     const r = store.createIntake(db, profile, { source });
-    return { refCode: r.refCode, crisis: r.crisis, byNeed: r.byNeed, unmetNeeds: r.unmetNeeds, impliedNeeds: r.impliedNeeds };
+    return resultsPayload(r);
+  });
+
+  // A returning youth can re-run matching against today's directory (new
+  // programs, verified details, recent outcomes), optionally with new needs.
+  route('POST', '/api/followup/:code/refresh', async (req, { code }) => {
+    const client = store.getClientByCode(db, code);
+    if (!client) throw new HttpError(404, 'Code not found');
+    const { needs } = await readJson(req);
+    const valid = needs == null ? null : validateIntake({ needs, consent: true }).needs;
+    return resultsPayload({ ...store.refreshSearch(db, client, { needs: valid && valid.length ? valid : null }), refCode: client.ref_code });
   });
 
   // Follow-up by reference code: youth can see their referrals and report
@@ -178,6 +197,56 @@ function createApp({ dbFile, staffPassword, sessionSecret, secureCookies = false
     return { ok: true };
   }, { staff: true });
 
+  route('POST', '/api/staff/referrals/:id/validate', async (req, { id }) => {
+    const { verified_by, note } = await readJson(req);
+    const by = String(verified_by || '').trim().slice(0, 100);
+    if (!by) throw new HttpError(400, 'Add your name or initials');
+    if (!store.validateReferral(db, Number(id), { by, note: note ? String(note).slice(0, 1000) : null }))
+      throw new HttpError(404, 'Referral not found');
+    return { ok: true };
+  }, { staff: true });
+
+  route('POST', '/api/staff/referrals/:id/unvalidate', (_req, { id }) => {
+    if (!store.unvalidateReferral(db, Number(id))) throw new HttpError(404, 'Referral not found');
+    return { ok: true };
+  }, { staff: true });
+
+  // Pull in programs added to the starter list since this database was made.
+  // With updateExisting, entries nobody has edited or verified get the latest
+  // starter details too.
+  route('POST', '/api/staff/resources/refresh', async (req) => {
+    const { updateExisting } = await readJson(req);
+    return db_.mergeResources(db, db_.readSeed(), { updateExisting: updateExisting === true, source: 'seed' });
+  }, { staff: true });
+
+  route('POST', '/api/staff/resources/import', async (req) => {
+    const { resources, updateExisting } = await readJson(req, 2 * 1024 * 1024);
+    if (!Array.isArray(resources) || !resources.length) throw new HttpError(400, 'Expected a list of resources');
+    const clean = [];
+    const errors = [];
+    resources.forEach((r, i) => {
+      try {
+        clean.push(validateResource(r));
+      } catch (err) {
+        if (!(err instanceof ValidationError)) throw err;
+        errors.push(`#${i + 1} ${r?.name || ''}: ${err.errors.join('; ')}`);
+      }
+    });
+    if (errors.length) throw new ValidationError(errors.slice(0, 20));
+    return db_.mergeResources(db, clean, { updateExisting: updateExisting === true, source: 'import' });
+  }, { staff: true });
+
+  route('POST', '/api/staff/resources/check-links', () => store.checkLinks(db, { fetchImpl: linkFetch }), { staff: true });
+
+  route('POST', '/api/staff/resources/:id/partner', async (req, { id }) => {
+    const existing = db_.getResource(db, id);
+    if (!existing) throw new HttpError(404, 'Resource not found');
+    const { partner } = await readJson(req);
+    const flags = existing.flags.filter((f) => f !== 'partner');
+    if (partner) flags.push('partner');
+    return db_.upsertResource(db, { ...existing, flags }, { edited: 1 });
+  }, { staff: true });
+
   route('GET', '/api/staff/resources', () => {
     const stats = store.resourceStats(db);
     return db_.listResources(db, { includeInactive: true }).map((r) => ({ ...r, stats: stats[r.id] || null }));
@@ -185,7 +254,8 @@ function createApp({ dbFile, staffPassword, sessionSecret, secureCookies = false
 
   route('POST', '/api/staff/resources', async (req) => {
     const r = validateResource(await readJson(req));
-    return db_.upsertResource(db, r);
+    const isNew = !db_.getResource(db, r.id);
+    return db_.upsertResource(db, r, isNew ? { edited: 1, source: 'staff' } : { edited: 1 });
   }, { staff: true });
 
   route('POST', '/api/staff/resources/:id/verify', async (req, { id }) => {

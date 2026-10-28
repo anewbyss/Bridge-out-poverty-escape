@@ -69,6 +69,82 @@ function contactLine(r) {
   );
 }
 
+function resourceBadges(r) {
+  const f = r.flags || [];
+  return [
+    r.crisis && el('span', { class: 'badge crisis' }, '24/7'),
+    f.includes('partner') && el('span', { class: 'badge partner' }, '★ Partner'),
+    f.includes('confidential') && el('span', { class: 'badge' }, 'Confidential'),
+    !!(f.includes('culturally_specific') || r.culturally_specific?.length) && el('span', { class: 'badge' }, 'Culturally specific'),
+    f.includes('lgbtq_affirming') && el('span', { class: 'badge' }, 'LGBTQIA2S+ affirming'),
+  ];
+}
+
+function resourceCard(m) {
+  const r = m.resource;
+  return el('article', { class: 'card resource' },
+    el('h3', {}, r.name),
+    el('div', { class: 'chips' }, resourceBadges(r)),
+    r.org && r.org !== r.name ? el('div', { class: 'org' }, r.org) : null,
+    el('p', {}, r.description),
+    contactLine(r),
+    r.hours ? el('p', { class: 'small muted' }, `Hours: ${r.hours}`) : null,
+    r.eligibility ? el('p', { class: 'small muted' }, `Who qualifies: ${r.eligibility}`) : null,
+    m.reasons.length ? el('ul', { class: 'reasons' }, m.reasons.map((x) => el('li', {}, x))) : null,
+    m.alsoHelpsWith.length ? el('p', { class: 'small muted' }, `Also helps with: ${m.alsoHelpsWith.join(', ')}`) : null,
+    m.warnings.length ? el('ul', { class: 'warnings' }, m.warnings.map((x) => el('li', {}, x))) : null);
+}
+
+// Renders match results (from a new search or a refresh) into `out`.
+function renderResults(out, res, T, { refreshed = false } = {}) {
+  const shown = new Set();
+  const total = new Set(res.byNeed.flatMap((g) => g.matches.map((m) => m.resource.id))).size;
+  mount(out,
+    el('div', { class: 'card' },
+      el('h1', {}, refreshed ? `Updated: ${total} program${total === 1 ? '' : 's'} for you` : `We found ${total} program${total === 1 ? '' : 's'} for you`),
+      el('p', {}, 'Your check-in code:'),
+      el('p', {}, el('span', { class: 'refcode' }, res.refCode)),
+      el('p', { class: 'small muted' },
+        'Save this code (screenshot it or write it down). Come back to ',
+        el('a', { href: `/followup?code=${encodeURIComponent(res.refCode)}` }, 'Check in'),
+        ' to tell us how it went or to refresh your matches — new programs are added over time.'),
+      res.usedDefaults
+        ? el('p', { class: 'notice' }, 'You didn’t pick a need, so we’re showing our main housing, rent, and utility help. Pick needs any time for better matches.')
+        : null,
+      el('div', { class: 'actions no-print' },
+        el('button', { class: 'btn secondary', type: 'button', onclick: () => window.print() }, 'Print / save as PDF'),
+        refreshed ? null : el('a', { class: 'btn secondary', href: '/' }, 'Start over'))),
+
+    res.crisis.length
+      ? el('section', { class: 'card crisis-box' },
+          el('h2', {}, 'Support right now, 24/7'),
+          el('p', {}, 'You don’t have to wait. These lines are free and confidential.'),
+          el('div', { class: 'crisis-list' },
+            res.crisis.map((r) => el('div', { class: 'crisis-item' }, el('strong', {}, r.name), contactLine(r)))))
+      : null,
+
+    res.unmetNeeds.length
+      ? el('div', { class: 'notice' },
+          el('strong', {}, 'We couldn’t find a specific program for: '),
+          res.unmetNeeds.map((n) => T.label.NEEDS[n]).join(', '),
+          '. 211info can search more options — call 211 or text your ZIP to 898211. We’ve logged this gap so our team can work on it.')
+      : null,
+
+    res.byNeed.map((g) =>
+      el('section', { class: 'need-group' },
+        el('h2', {}, g.label,
+          g.defaulted ? el('span', { class: 'badge' }, 'Common need')
+            : g.implied ? el('span', { class: 'badge warn' }, 'Added based on your answers') : null),
+        g.matches.length
+          ? g.matches.map((m) =>
+              shown.has(m.resource.id)
+                ? el('p', { class: 'card small' }, el('strong', {}, m.resource.name), ' — listed above')
+                : (shown.add(m.resource.id), resourceCard(m)))
+          : el('p', { class: 'muted' }, 'No matches yet — try 211info (call 211).')))
+  );
+  out.classList.remove('hidden');
+}
+
 function errorBox(err) {
   return el(
     'div',

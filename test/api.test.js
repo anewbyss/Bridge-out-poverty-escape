@@ -7,8 +7,8 @@ const { createApp } = require('../server/app');
 
 const PASSWORD = 'test-password';
 
-async function start() {
-  const app = createApp({ dbFile: ':memory:', staffPassword: PASSWORD, sessionSecret: 'secret' });
+async function start(opts = {}) {
+  const app = createApp({ dbFile: ':memory:', staffPassword: PASSWORD, sessionSecret: 'secret', ...opts });
   const server = http.createServer(app.handle);
   await new Promise((r) => server.listen(0, r));
   const base = `http://127.0.0.1:${server.address().port}`;
@@ -30,7 +30,7 @@ async function start() {
     }
     return { status: res.status, data, headers: res.headers };
   };
-  return { server, req, clearCookie: () => (cookie = '') };
+  return { server, req, app, clearCookie: () => (cookie = ''), login: () => req('POST', '/api/staff/login', { password: PASSWORD }) };
 }
 
 const intake = {
@@ -170,4 +170,135 @@ test('static files cannot escape the public directory', async (t) => {
   assert.equal((await req('GET', '/../server/app.js')).status, 404);
   assert.equal((await req('GET', '/%2e%2e/server/app.js')).status, 404);
   assert.equal((await req('GET', '/%E0%A4%A')).status, 400);
+});
+
+test('minimal and private searches, refresh, and validation', async (t) => {
+  const { server, req, login } = await start();
+  t.after(() => server.close());
+
+  // Only consent is required.
+  const min = await req('POST', '/api/intake', { consent: true });
+  assert.equal(min.status, 200, JSON.stringify(min.data));
+  assert.ok(min.data.usedDefaults);
+  assert.ok(min.data.byNeed.length === 3);
+
+  // Private search: matching uses everything, storage keeps only the basics.
+  const priv = await req('POST', '/api/intake', {
+    consent: true, confidential: true, age: 20, county: 'multnomah', race: ['native'], vulnerabilities: ['dv'],
+    needs: ['safety'], notes: 'secret', contact_ok: true, contact_method: 'text', contact_value: '555',
+  });
+  assert.equal(priv.status, 200);
+  assert.ok(priv.data.byNeed[0].matches.some((m) => m.resource.id === 'stronghearts'), 'matching used race + dv');
+  await login();
+  const detail = (await req('GET', `/api/staff/clients/${priv.data.refCode}`)).data.client;
+  assert.equal(detail.confidential, 1);
+  assert.deepEqual(detail.race, []);
+  assert.deepEqual(detail.vulnerabilities, []);
+  assert.equal(detail.notes, null);
+  assert.equal(detail.contact_value, null);
+  assert.deepEqual(detail.needs, ['safety']);
+  assert.equal((await req('GET', '/api/staff/dashboard')).data.totals.confidential, 1);
+
+  // Refresh with new needs; existing referrals are reused, not duplicated.
+  const code = min.data.refCode;
+  const before = (await req('GET', `/api/followup/${code}`)).data.referrals;
+  const refreshed = await req('POST', `/api/followup/${code}/refresh`, { needs: ['rent_assistance', 'food'] });
+  assert.equal(refreshed.status, 200, JSON.stringify(refreshed.data));
+  assert.equal(refreshed.data.refCode, code);
+  assert.deepEqual(refreshed.data.byNeed.map((g) => g.need).sort(), ['food', 'rent_assistance']);
+  const after = (await req('GET', `/api/followup/${code}`)).data.referrals;
+  const ids = after.map((r) => r.resource_id);
+  assert.equal(new Set(ids).size, ids.length, 'no duplicate referrals');
+  assert.ok(after.length > before.length);
+  assert.equal((await req('POST', `/api/followup/${code}/refresh`, { needs: ['nope'] })).status, 400);
+
+  // Validate a connection.
+  const ref = after[0];
+  assert.equal((await req('POST', `/api/staff/referrals/${ref.id}/validate`, { note: 'x' })).status, 400);
+  assert.equal((await req('POST', `/api/staff/referrals/${ref.id}/validate`, { verified_by: 'BA', note: 'Called intake' })).status, 200);
+  const v = (await req('GET', `/api/followup/${code}`)).data.referrals.find((r) => r.id === ref.id);
+  assert.equal(v.status, 'received');
+  assert.equal(v.validated_by, 'BA');
+  const dash = (await req('GET', '/api/staff/dashboard')).data;
+  assert.equal(dash.totals.validated, 1);
+  const stats = (await req('GET', '/api/staff/resources')).data.find((r) => r.id === ref.resource_id).stats;
+  assert.equal(stats.validated, 1);
+  assert.equal((await req('POST', `/api/staff/referrals/${ref.id}/unvalidate`, {})).status, 200);
+  assert.equal((await req('GET', '/api/staff/dashboard')).data.totals.validated, 0);
+});
+
+test('refreshing, importing, favoring, and link-checking resources', async (t) => {
+  const fakeFetch = async (url) => ({ ok: !url.includes('pearmentor'), status: url.includes('pearmentor') ? 404 : 200 });
+  const { server, req, app, login } = await start({ linkFetch: fakeFetch });
+  t.after(() => server.close());
+  await login();
+
+  // Simulate a database made before some starter programs existed, plus one staff edit.
+  app.db.prepare("DELETE FROM resources WHERE id IN ('rainn', 'bradley-angle')").run();
+  app.db.prepare("UPDATE resources SET description = 'old text' WHERE id IN ('211info', 'q-center')").run();
+  const qc = (await req('GET', '/api/staff/resources')).data.find((r) => r.id === 'q-center');
+  assert.equal((await req('POST', '/api/staff/resources', { ...qc, description: 'staff wrote this' })).status, 200);
+
+  const plain = await req('POST', '/api/staff/resources/refresh', {});
+  assert.equal(plain.data.added, 2);
+  assert.equal(plain.data.updated, 0);
+  const full = await req('POST', '/api/staff/resources/refresh', { updateExisting: true });
+  assert.ok(full.data.updated > 0);
+  const list = (await req('GET', '/api/staff/resources')).data;
+  assert.notEqual(list.find((r) => r.id === '211info').description, 'old text');
+  assert.equal(list.find((r) => r.id === 'q-center').description, 'staff wrote this', 'staff edits survive refresh');
+
+  // Import
+  const imp = await req('POST', '/api/staff/resources/import', {
+    resources: [{ name: 'Gresham Youth Rent Fund', categories: ['rent_assistance'], counties: ['multnomah'], website: 'https://example.org' }],
+  });
+  assert.equal(imp.status, 200, JSON.stringify(imp.data));
+  assert.equal(imp.data.added, 1);
+  const badImp = await req('POST', '/api/staff/resources/import', { resources: [{ name: 'x', categories: [] }] });
+  assert.equal(badImp.status, 400);
+
+  // Favor (partner)
+  const fav = await req('POST', '/api/staff/resources/oregon-food-bank/partner', { partner: true });
+  assert.ok(fav.data.flags.includes('partner'));
+  const r = await req('POST', '/api/intake', { consent: true, age: 20, county: 'multnomah', needs: ['food'] });
+  const food = r.data.byNeed[0].matches;
+  assert.equal(food[0].resource.id, 'oregon-food-bank');
+  assert.ok(food[0].resource.flags.includes('partner'));
+  const unfav = await req('POST', '/api/staff/resources/oregon-food-bank/partner', { partner: false });
+  assert.ok(!unfav.data.flags.includes('partner'));
+
+  // Link check
+  const links = await req('POST', '/api/staff/resources/check-links', {});
+  assert.equal(links.status, 200);
+  assert.deepEqual(links.data.broken.map((b) => b.id), ['pear']);
+  const pear = (await req('GET', '/api/staff/resources')).data.find((x) => x.id === 'pear');
+  assert.equal(pear.link_status, 'broken (404)');
+  const youth = await req('POST', '/api/intake', { consent: true, age: 18, county: 'multnomah', needs: ['mentoring'] });
+  const card = youth.data.byNeed[0].matches.find((m) => m.resource.id === 'pear');
+  assert.ok(card.warnings.some((w) => w.includes('Website')));
+});
+
+test('migrates a database created before age became optional', async (t) => {
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  const { DatabaseSync } = require('node:sqlite');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bop-'));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const file = path.join(dir, 'old.db');
+  const old = new DatabaseSync(file);
+  old.exec(`CREATE TABLE clients (id INTEGER PRIMARY KEY AUTOINCREMENT, ref_code TEXT NOT NULL UNIQUE,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')), source TEXT NOT NULL DEFAULT 'self', age INTEGER NOT NULL,
+    county TEXT, zip TEXT, race TEXT NOT NULL DEFAULT '[]', sex TEXT, gender TEXT NOT NULL DEFAULT '[]', lgbtq TEXT,
+    family TEXT NOT NULL DEFAULT '[]', household_size INTEGER, income TEXT, income_sources TEXT NOT NULL DEFAULT '[]',
+    housing TEXT, education TEXT, employment TEXT, vulnerabilities TEXT NOT NULL DEFAULT '[]', needs TEXT NOT NULL DEFAULT '[]',
+    preferences TEXT NOT NULL DEFAULT '[]', language TEXT, tags TEXT NOT NULL DEFAULT '[]', notes TEXT,
+    contact_ok INTEGER NOT NULL DEFAULT 0, contact_method TEXT, contact_value TEXT);
+    INSERT INTO clients (ref_code, age) VALUES ('AAAA-BBBB', 19);`);
+  old.close();
+  const { server, req } = await start({ dbFile: file });
+  t.after(() => server.close());
+  const r = await req('POST', '/api/intake', { consent: true, needs: ['food'] });
+  assert.equal(r.status, 200, JSON.stringify(r.data));
+  assert.equal((await req('GET', '/api/followup/AAAA-BBBB')).status, 200);
 });

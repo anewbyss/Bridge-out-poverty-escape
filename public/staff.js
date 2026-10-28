@@ -117,7 +117,9 @@
         stat(t.referrals, 'Programs suggested'),
         stat(t.clientsFollowedUp, 'Youth who reported back'),
         stat(pct(t.successRate), `Got help (of ${t.outcomesReported} outcomes)`),
-        stat(t.withUnmetNeed, 'Searches with an unmet need')),
+        stat(t.validated, 'Connections confirmed by staff'),
+        stat(t.withUnmetNeed, 'Searches with an unmet need'),
+        stat(t.confidential, 'Private searches')),
       el('div', { class: 'grid2' },
         panel('What youth are asking for', 'Needs selected or implied per search.', bars(d.needs, T.label.NEEDS)),
         panel('Gaps: needs with no specific program', 'Logged when only a general line (211) matched.', bars(d.unmet, T.label.NEEDS, { alt: true })),
@@ -141,11 +143,11 @@
       panel('Programs', 'Which programs youth are sent to and what happens.',
         el('div', { class: 'table-wrap' },
           el('table', {},
-            el('thead', {}, el('tr', {}, ['Program', 'Suggested', 'Updated', 'Got help', 'Success', 'Top barriers'].map((h) => el('th', {}, h)))),
+            el('thead', {}, el('tr', {}, ['Program', 'Suggested', 'Updated', 'Got help', 'Confirmed', 'Success', 'Top barriers'].map((h) => el('th', {}, h)))),
             el('tbody', {},
               d.byResource.map((r) =>
                 el('tr', {},
-                  el('td', {}, r.name), el('td', {}, r.referrals), el('td', {}, r.updated), el('td', {}, r.received),
+                  el('td', {}, r.name), el('td', {}, r.referrals), el('td', {}, r.updated), el('td', {}, r.received), el('td', {}, r.validated),
                   el('td', {}, pct(rate(r))), el('td', { class: 'small' }, topBarriers(r.barriers)))))))),
       el('h2', {}, 'Who we’re serving'),
       el('div', { class: 'grid2' },
@@ -178,7 +180,7 @@
             rows.length
               ? rows.map((c) =>
                   el('tr', { class: 'clickable', tabindex: '0', onclick: () => openClient(c.ref_code), onkeydown: (e) => e.key === 'Enter' && openClient(c.ref_code) },
-                    el('td', {}, el('code', {}, c.ref_code)),
+                    el('td', {}, el('code', {}, c.ref_code), c.confidential ? el('span', { class: 'badge warn' }, ' private') : null),
                     el('td', {}, fmtDate(c.created_at)),
                     el('td', {}, c.age),
                     el('td', {}, T.label.COUNTIES[c.county]?.split(' (')[0] || c.county),
@@ -194,8 +196,14 @@
   function profileList(c) {
     const one = (key, list) => T.label[list][c[key]] || '—';
     const many = (key, list) => (c[key].length ? c[key].map((x) => T.label[list][x] || x).join(', ') : '—');
+    if (c.confidential)
+      return el('div', {},
+        el('p', { class: 'notice' }, 'Private search — the youth chose to save only age, area, language, and needs.'),
+        el('table', {}, el('tbody', {},
+          [['Age', c.age ?? '—'], ['County', one('county', 'COUNTIES')], ['Language', one('language', 'LANGUAGES')], ['Needs', many('needs', 'NEEDS')]]
+            .map(([k, v]) => el('tr', {}, el('th', {}, k), el('td', {}, v))))));
     const rows = [
-      ['Age', c.age], ['County', one('county', 'COUNTIES')], ['ZIP', c.zip || '—'], ['Language', one('language', 'LANGUAGES')],
+      ['Age', c.age ?? '—'], ['County', one('county', 'COUNTIES')], ['ZIP', c.zip || '—'], ['Language', one('language', 'LANGUAGES')],
       ['Race / ethnicity', many('race', 'RACE')], ['Sex', one('sex', 'SEX')], ['Gender', many('gender', 'GENDER')],
       ['LGBTQIA2S+', one('lgbtq', 'LGBTQ')], ['Family', many('family', 'FAMILY')], ['Household size', c.household_size || '—'],
       ['Income', one('income', 'INCOME')], ['Income sources', many('income_sources', 'INCOME_SOURCES')],
@@ -233,21 +241,56 @@
     el('div', { class: 'actions' }, el('button', { class: 'btn small', type: 'submit' }, 'Save update'), msg));
   }
 
-  async function openClient(code) {
+  // Validating = staff confirmed with the provider that the youth was really
+  // connected. It counts extra in future matching.
+  function validationBox(ref, onSaved) {
+    if (ref.validated_at)
+      return el('p', { class: 'success' },
+        `✓ Connection confirmed by ${ref.validated_by} on ${fmtDate(ref.validated_at)}`,
+        ref.validation_note ? ` — “${ref.validation_note}”` : '', ' ',
+        el('button', {
+          class: 'btn secondary small', type: 'button',
+          onclick: async () => {
+            await api(`/api/staff/referrals/${ref.id}/unvalidate`, { method: 'POST', body: {} }).catch(handleError);
+            onSaved();
+          },
+        }, 'Undo'));
+    const who = el('input', { type: 'text', placeholder: 'Your initials', maxlength: 100 });
+    const note = el('input', { type: 'text', placeholder: 'How you confirmed (e.g. called intake)', maxlength: 1000 });
+    const msg = el('span');
+    return el('div', { class: 'toolbar validate' },
+      el('label', {}, 'Confirmed by', who),
+      el('label', { class: 'grow' }, 'Note', note),
+      el('button', {
+        class: 'btn small', type: 'button',
+        onclick: async () => {
+          try {
+            await api(`/api/staff/referrals/${ref.id}/validate`, { method: 'POST', body: { verified_by: who.value, note: note.value || null } });
+            onSaved();
+          } catch (err) {
+            mount(msg, errorBox(err));
+          }
+        },
+      }, '✓ Validate connection'),
+      msg);
+  }
+
+  async function openClient(code, openId = null) {
     try {
       const { client, referrals, events } = await api(`/api/staff/clients/${encodeURIComponent(code)}`);
-      const reload = () => openClient(code);
+      const reload = (id) => () => openClient(code, id);
       openDialog(
         el('h2', {}, 'Youth ', el('code', {}, client.ref_code)),
         el('p', { class: 'muted small' }, `Intake ${fmtDate(client.created_at)}`),
         el('details', {}, el('summary', {}, 'Intake answers'), el('div', { class: 'table-wrap' }, profileList(client))),
         el('h3', {}, 'Referrals'),
         referrals.map((r) =>
-          el('details', { class: 'card' },
+          el('details', { class: 'card', open: r.id === openId },
             el('summary', {}, el('strong', {}, r.name), ' — ', T.label.NEEDS[r.need] || r.need, ' ',
               el('span', { class: 'badge' }, T.label.OUTCOMES[r.status])),
             contactLine(r),
-            staffOutcomeForm(r, reload))),
+            validationBox(r, reload(r.id)),
+            staffOutcomeForm(r, reload(r.id)))),
         el('h3', {}, 'History'),
         events.length
           ? el('ul', { class: 'small' }, events.map((e) => {
@@ -278,50 +321,122 @@
   const isStale = (r) => !r.last_verified || (Date.now() - Date.parse(r.last_verified)) / 86400000 > STALE_DAYS;
   let resFilter = { q: '', stale: false, inactive: false };
 
+  let allResources = [];
   async function loadResources() {
-    const all = await api('/api/staff/resources');
-    const shown = all.filter(
+    allResources = await api('/api/staff/resources');
+    renderResources();
+  }
+
+  function resourceRows() {
+    const shown = allResources.filter(
       (r) =>
         (!resFilter.q || `${r.name} ${r.org || ''}`.toLowerCase().includes(resFilter.q.toLowerCase())) &&
         (!resFilter.stale || isStale(r)) &&
         (resFilter.inactive || r.active)
     );
+    return shown.map((r) =>
+      el('tr', {},
+        el('td', {}, el('strong', {}, r.name), ' ', resourceBadges(r), r.active ? '' : el('span', { class: 'badge warn' }, 'inactive')),
+        el('td', { class: 'small' }, r.categories.map((c) => T.label.NEEDS[c] || c).join(', ')),
+        el('td', { class: 'small' }, r.counties.includes('all') ? 'Anywhere' : r.counties.map((c) => T.label.COUNTIES[c]?.split(' (')[0] || c).join(', ')),
+        el('td', {}, `${r.age_min}–${r.age_max}`),
+        el('td', {}, isStale(r) ? el('span', { class: 'badge warn' }, r.last_verified ? fmtDate(r.last_verified) : 'Never') : fmtDate(r.last_verified)),
+        el('td', { class: 'small' },
+          !r.link_status ? '—' : r.link_status === 'ok' ? '✓ loads' : el('span', { class: 'badge warn' }, r.link_status)),
+        el('td', {}, r.stats ? `${r.stats.referrals} → ${r.stats.successes} (${r.stats.validated} ✓)` : '—'),
+        el('td', {},
+          el('div', { class: 'chips' },
+            el('button', { class: 'btn secondary small', type: 'button', onclick: () => editResource(r) }, 'Edit'),
+            el('button', {
+              class: 'btn secondary small', type: 'button', title: 'Partner programs are favored in matching',
+              onclick: async () => {
+                try {
+                  await api(`/api/staff/resources/${encodeURIComponent(r.id)}/partner`, { method: 'POST', body: { partner: !r.flags.includes('partner') } });
+                  loadResources();
+                } catch (err) {
+                  handleError(err);
+                }
+              },
+            }, r.flags.includes('partner') ? '★ Unfavor' : '☆ Favor'),
+            el('button', {
+              class: 'btn small', type: 'button',
+              onclick: async () => {
+                const who = prompt('Your name or initials (for the record):', '');
+                if (who === null) return;
+                try {
+                  await api(`/api/staff/resources/${encodeURIComponent(r.id)}/verify`, { method: 'POST', body: { verified_by: who } });
+                  loadResources();
+                } catch (err) {
+                  handleError(err);
+                }
+              },
+            }, 'Verified')))));
+  }
+
+  function renderResources() {
+    const all = allResources;
+    const tbody = el('tbody', {}, resourceRows());
+    const rerows = () => mount(tbody, resourceRows());
+    const status = el('div', { 'aria-live': 'polite' });
+    const updateExisting = el('input', { type: 'checkbox' });
+    const fileInput = el('input', { type: 'file', accept: '.json,application/json', class: 'hidden' });
+    const busy = async (label, fn) => {
+      mount(status, el('p', { class: 'muted' }, `${label}…`));
+      try {
+        mount(status, el('div', { class: 'notice' }, await fn()));
+        allResources = await api('/api/staff/resources');
+        mount(tbody, resourceRows());
+      } catch (err) {
+        if (err.status === 401) return handleError(err);
+        mount(status, errorBox(err));
+      }
+    };
+    const mergeMsg = (r) => `${r.added} added, ${r.updated} updated, ${r.kept} kept as they were.`;
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+      busy('Importing', async () => {
+        let parsed;
+        try {
+          parsed = JSON.parse(await file.text());
+        } catch {
+          throw new Error('That file isn’t valid JSON.');
+        }
+        const list = Array.isArray(parsed) ? parsed : parsed.resources;
+        return `Import: ${mergeMsg(await api('/api/staff/resources/import', { method: 'POST', body: { resources: list, updateExisting: updateExisting.checked } }))}`;
+      });
+      fileInput.value = '';
+    });
     const staleCount = all.filter((r) => r.active && isStale(r)).length;
+    const brokenCount = all.filter((r) => r.active && r.link_status && r.link_status !== 'ok').length;
     mount($('tab-resources'),
+      el('section', { class: 'card' },
+        el('h3', {}, 'Keep the directory fresh'),
+        el('p', { class: 'hint' }, 'Refresh adds programs from the built-in starter list that you don’t have yet. Import adds programs from a JSON file (same format as “Export resources”). Programs you have edited or verified are never overwritten.'),
+        el('div', { class: 'toolbar' },
+          el('button', { class: 'btn secondary', type: 'button', onclick: () => busy('Refreshing', async () => `Refresh: ${mergeMsg(await api('/api/staff/resources/refresh', { method: 'POST', body: { updateExisting: updateExisting.checked } }))}`) }, '↻ Refresh from starter list'),
+          el('button', { class: 'btn secondary', type: 'button', onclick: () => fileInput.click() }, 'Import JSON…'),
+          fileInput,
+          el('button', {
+            class: 'btn secondary', type: 'button',
+            onclick: () => busy('Checking websites (this can take a minute)', async () => {
+              const r = await api('/api/staff/resources/check-links', { method: 'POST', body: {} });
+              return `Checked ${r.checked} websites: ${r.ok} loaded, ${r.broken.length} need a look${r.broken.length ? ` (${r.broken.map((b) => b.id).join(', ')})` : ''}.`;
+            }),
+          }, 'Check websites'),
+          el('label', { class: 'chip' }, updateExisting, 'Also update programs nobody has edited or verified')),
+        status),
       staleCount ? el('div', { class: 'notice' }, `${staleCount} active programs haven’t been verified in the last ${STALE_DAYS} days. Call or check their website, update details, then click “Verified”.`) : null,
+      brokenCount ? el('div', { class: 'notice' }, `${brokenCount} program websites didn’t load at the last check.`) : null,
       el('div', { class: 'card toolbar' },
-        el('label', { class: 'grow' }, 'Search', el('input', { type: 'search', value: resFilter.q, oninput: (e) => ((resFilter.q = e.target.value), loadResources().catch(handleError)) })),
-        el('label', { class: 'chip' }, el('input', { type: 'checkbox', checked: resFilter.stale, onchange: (e) => ((resFilter.stale = e.target.checked), loadResources().catch(handleError)) }), 'Needs verification'),
-        el('label', { class: 'chip' }, el('input', { type: 'checkbox', checked: resFilter.inactive, onchange: (e) => ((resFilter.inactive = e.target.checked), loadResources().catch(handleError)) }), 'Show inactive'),
+        el('label', { class: 'grow' }, 'Search', el('input', { type: 'search', value: resFilter.q, oninput: (e) => ((resFilter.q = e.target.value), rerows()) })),
+        el('label', { class: 'chip' }, el('input', { type: 'checkbox', checked: resFilter.stale, onchange: (e) => ((resFilter.stale = e.target.checked), rerows()) }), 'Needs verification'),
+        el('label', { class: 'chip' }, el('input', { type: 'checkbox', checked: resFilter.inactive, onchange: (e) => ((resFilter.inactive = e.target.checked), rerows()) }), 'Show inactive'),
         el('button', { class: 'btn', type: 'button', onclick: () => editResource(null) }, 'Add program')),
       el('div', { class: 'card table-wrap' },
         el('table', {},
-          el('thead', {}, el('tr', {}, ['Program', 'Helps with', 'Area', 'Ages', 'Verified', 'Suggested → got help', ''].map((h) => el('th', {}, h)))),
-          el('tbody', {},
-            shown.map((r) =>
-              el('tr', {},
-                el('td', {}, el('strong', {}, r.name), r.active ? '' : el('span', { class: 'badge warn' }, ' inactive'), r.crisis ? el('span', { class: 'badge crisis' }, ' crisis') : ''),
-                el('td', { class: 'small' }, r.categories.map((c) => T.label.NEEDS[c] || c).join(', ')),
-                el('td', { class: 'small' }, r.counties.includes('all') ? 'Anywhere' : r.counties.map((c) => T.label.COUNTIES[c]?.split(' (')[0] || c).join(', ')),
-                el('td', {}, `${r.age_min}–${r.age_max}`),
-                el('td', {}, isStale(r) ? el('span', { class: 'badge warn' }, r.last_verified ? fmtDate(r.last_verified) : 'Never') : fmtDate(r.last_verified)),
-                el('td', {}, r.stats ? `${r.stats.referrals} → ${r.stats.successes}` : '—'),
-                el('td', {},
-                  el('div', { class: 'chips' },
-                    el('button', { class: 'btn secondary small', type: 'button', onclick: () => editResource(r) }, 'Edit'),
-                    el('button', {
-                      class: 'btn small', type: 'button',
-                      onclick: async () => {
-                        const who = prompt('Your name or initials (for the record):', '');
-                        if (who === null) return;
-                        try {
-                          await api(`/api/staff/resources/${encodeURIComponent(r.id)}/verify`, { method: 'POST', body: { verified_by: who } });
-                          loadResources();
-                        } catch (err) {
-                          handleError(err);
-                        }
-                      },
-                    }, 'Verified')))))))));
+          el('thead', {}, el('tr', {}, ['Program', 'Helps with', 'Area', 'Ages', 'Verified', 'Website', 'Suggested → got help (✓ confirmed)', ''].map((h) => el('th', {}, h)))),
+          tbody)));
   }
 
   function checkList(name, list, selected) {
@@ -335,7 +450,7 @@
       el('label', { class: 'label' }, label, el('input', { type: 'text', name, value: v[name] ?? '', ...attrs }));
     const errs = el('div');
     const counties = [{ id: 'all', label: 'Anywhere (statewide / national)' }, ...T.COUNTIES];
-    const flagOptions = [...T.PREFERENCES, { id: 'general', label: 'General help line (does not count as a specific match)' }];
+    const flagOptions = [...T.RESOURCE_FLAGS, ...T.PREFERENCES];
     const form = el('form', {},
       el('h2', {}, r ? `Edit ${r.name}` : 'Add a program'),
       errs,

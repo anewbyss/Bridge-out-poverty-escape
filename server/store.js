@@ -38,11 +38,12 @@ function tx(db, fn) {
 
 // Outcome history per resource, fed back into the matcher's scoring.
 function resourceStats(db) {
-  const rows = db.prepare("SELECT resource_id, status, barriers FROM referrals WHERE status != 'suggested'").all();
+  const rows = db.prepare("SELECT resource_id, status, barriers, validated_at FROM referrals WHERE status != 'suggested'").all();
   const stats = {};
   for (const r of rows) {
-    const s = (stats[r.resource_id] ||= { referrals: 0, finals: 0, successes: 0, barriers: {} });
+    const s = (stats[r.resource_id] ||= { referrals: 0, finals: 0, successes: 0, validated: 0, barriers: {} });
     s.referrals++;
+    if (r.validated_at) s.validated++;
     if (FINAL.has(r.status)) s.finals++;
     if (SUCCESS.has(r.status)) s.successes++;
     for (const b of parseJson(r.barriers, [])) s.barriers[b] = (s.barriers[b] || 0) + 1;
@@ -66,7 +67,12 @@ function runSearch(db, clientId, profile) {
   const insert = db.prepare(
     'INSERT INTO referrals (client_id, search_id, resource_id, need, score, rank) VALUES (?, ?, ?, ?, ?, ?)'
   );
-  const seen = new Map();
+  // A refresh reuses earlier referrals to the same program, so the youth's
+  // reported outcome stays attached and counts aren't inflated.
+  const seen = new Map(
+    db.prepare('SELECT resource_id, MIN(id) AS id FROM referrals WHERE client_id = ? GROUP BY resource_id').all(clientId)
+      .map((r) => [r.resource_id, r.id])
+  );
   for (const group of results.byNeed) {
     group.matches.forEach((m, i) => {
       if (seen.has(m.resource.id)) {
@@ -81,16 +87,27 @@ function runSearch(db, clientId, profile) {
   return { searchId, ...results };
 }
 
+// What a private (confidential) search keeps: enough to count needs and gaps
+// and to let the youth check in, nothing that describes who they are.
+const PRIVATE_KEEP = new Set(['age', 'county', 'language', 'needs']);
+
+function storedProfile(profile) {
+  if (!profile.confidential) return { ...profile, tags: deriveTags(profile) };
+  const out = { confidential: true, tags: [] };
+  for (const [k, v] of Object.entries(profile)) if (PRIVATE_KEEP.has(k)) out[k] = v;
+  return out;
+}
+
 function createIntake(db, profile, { source = 'self' } = {}) {
   return tx(db, () => {
     let refCode;
     do refCode = newRefCode();
     while (db.prepare('SELECT 1 FROM clients WHERE ref_code = ?').get(refCode));
 
-    const tags = deriveTags(profile);
-    const row = { ...profile, tags, ref_code: refCode, source, contact_ok: profile.contact_ok ? 1 : 0 };
+    const stored = storedProfile(profile);
+    const row = { ...stored, ref_code: refCode, source, contact_ok: stored.contact_ok ? 1 : 0, confidential: stored.confidential ? 1 : 0 };
     const cols = [
-      'ref_code', 'source', 'age', 'county', 'zip', 'race', 'sex', 'gender', 'lgbtq', 'family', 'household_size',
+      'ref_code', 'source', 'confidential', 'age', 'county', 'zip', 'race', 'sex', 'gender', 'lgbtq', 'family', 'household_size',
       'income', 'income_sources', 'housing', 'education', 'employment', 'vulnerabilities', 'needs', 'preferences',
       'language', 'tags', 'notes', 'contact_ok', 'contact_method', 'contact_value',
     ];
@@ -100,6 +117,19 @@ function createIntake(db, profile, { source = 'self' } = {}) {
       .run(...values);
     const clientId = Number(res.lastInsertRowid);
     return { refCode, clientId, ...runSearch(db, clientId, profile) };
+  });
+}
+
+// Re-runs matching for a returning youth against the current directory and
+// outcome history. Optional `needs` replaces what they asked for last time.
+function refreshSearch(db, client, { needs } = {}) {
+  return tx(db, () => {
+    const profile = { ...client };
+    if (needs) {
+      profile.needs = needs;
+      db.prepare('UPDATE clients SET needs = ? WHERE id = ?').run(JSON.stringify(needs), client.id);
+    }
+    return runSearch(db, client.id, profile);
   });
 }
 
@@ -113,6 +143,7 @@ function referralsFor(db, clientId) {
   return db
     .prepare(
       `SELECT r.id, r.resource_id, r.need, r.status, r.barriers, r.created_at, r.updated_at, r.score,
+              r.validated_at, r.validated_by, r.validation_note,
               res.name, res.phone, res.text, res.website
          FROM referrals r JOIN resources res ON res.id = r.resource_id
         WHERE r.client_id = ?
@@ -142,6 +173,32 @@ function recordOutcome(db, referralId, clientId, outcome, reportedBy) {
   });
 }
 
+// Staff confirmed with the provider that the youth was actually connected.
+// This marks the referral as "got help" and is weighted extra in matching.
+function validateReferral(db, referralId, { by, note }) {
+  return tx(db, () => {
+    const ref = db.prepare('SELECT id, barriers FROM referrals WHERE id = ?').get(referralId);
+    if (!ref) return null;
+    db.prepare(
+      `UPDATE referrals SET status = 'received', validated_at = datetime('now'), validated_by = ?, validation_note = ?,
+              updated_at = datetime('now') WHERE id = ?`
+    ).run(by, note, referralId);
+    db.prepare("INSERT INTO outcome_events (referral_id, status, barriers, note, reported_by) VALUES (?, 'received', ?, ?, ?)").run(
+      referralId,
+      ref.barriers,
+      note ? `Validated: ${note}` : 'Validated with provider',
+      `staff (${by})`
+    );
+    return true;
+  });
+}
+
+function unvalidateReferral(db, referralId) {
+  return db
+    .prepare("UPDATE referrals SET validated_at = NULL, validated_by = NULL, validation_note = NULL, updated_at = datetime('now') WHERE id = ?")
+    .run(referralId).changes > 0;
+}
+
 function eventsFor(db, clientId) {
   return db
     .prepare(
@@ -167,7 +224,7 @@ function listClients(db, { q, limit = 50 } = {}) {
     const c = fromRow(r, CLIENT_JSON);
     const k = counts.get(c.id);
     return {
-      ref_code: c.ref_code, created_at: c.created_at, source: c.source, age: c.age, county: c.county,
+      ref_code: c.ref_code, created_at: c.created_at, source: c.source, confidential: !!c.confidential, age: c.age, county: c.county,
       housing: c.housing, needs: c.needs, tags: c.tags, contact_ok: !!c.contact_ok,
       referrals: k.referrals, received: k.received || 0, updated: k.updated || 0,
     };
@@ -190,7 +247,7 @@ const AGE_BANDS = [
   ['21–24', 21, 24],
   ['25–26', 25, 26],
 ];
-const ageBand = (age) => (AGE_BANDS.find(([, lo, hi]) => age >= lo && age <= hi) || ['?'])[0];
+const ageBand = (age) => (age == null ? 'unknown' : (AGE_BANDS.find(([, lo, hi]) => age >= lo && age <= hi) || ['unknown'])[0]);
 
 function bump(obj, key, n = 1) {
   obj[key] = (obj[key] || 0) + n;
@@ -261,8 +318,9 @@ function dashboard(db, { from, to, county } = {}) {
     bump(outcomes, r.status);
     const bs = parseJson(r.barriers, []);
     for (const b of bs) bump(barriers, b);
-    const res = (byResource[r.resource_id] ||= { id: r.resource_id, name: r.resource_name, referrals: 0, updated: 0, finals: 0, received: 0, barriers: {} });
+    const res = (byResource[r.resource_id] ||= { id: r.resource_id, name: r.resource_name, referrals: 0, updated: 0, finals: 0, received: 0, validated: 0, barriers: {} });
     res.referrals++;
+    if (r.validated_at) res.validated++;
     const nd = (byNeed[r.need] ||= { referrals: 0, updated: 0, finals: 0, received: 0 });
     nd.referrals++;
     const c = clientById.get(r.client_id);
@@ -294,6 +352,8 @@ function dashboard(db, { from, to, county } = {}) {
       clientsFollowedUp: followedUp,
       outcomesReported: finals,
       received,
+      validated: referrals.filter((r) => r.validated_at).length,
+      confidential: clients.filter((c) => c.confidential).length,
       successRate: finals ? received / finals : null,
       withUnmetNeed: searches.filter((s) => parseJson(s.unmet_needs, []).length).length,
     },
@@ -322,8 +382,8 @@ function exportReferralsCsv(db) {
     .prepare(
       `SELECT c.id AS client, c.created_at AS intake_date, c.source, c.age, c.county, c.race, c.sex, c.gender, c.lgbtq,
               c.family, c.income, c.housing, c.education, c.employment, c.vulnerabilities, c.tags,
-              r.id AS referral, r.need, r.resource_id, res.name AS resource_name, r.score, r.rank, r.status, r.barriers,
-              r.updated_at
+              c.confidential, r.id AS referral, r.need, r.resource_id, res.name AS resource_name, r.score, r.rank, r.status,
+              r.barriers, r.validated_at IS NOT NULL AS validated, r.updated_at
          FROM referrals r JOIN clients c ON c.id = r.client_id JOIN resources res ON res.id = r.resource_id
         ORDER BY r.id`
     )
@@ -337,8 +397,46 @@ function exportReferralsCsv(db) {
   return lines.join('\n') + '\n';
 }
 
+// Checks every active resource's website and records whether it loaded.
+// `fetchImpl` is injectable for tests.
+async function checkLinks(db, { fetchImpl = fetch, timeoutMs = 8000, concurrency = 6 } = {}) {
+  const rows = db.prepare("SELECT id, website FROM resources WHERE active = 1 AND website IS NOT NULL AND website != ''").all();
+  const update = db.prepare("UPDATE resources SET link_status = ?, link_checked_at = datetime('now') WHERE id = ?");
+  const summary = { checked: 0, ok: 0, broken: [] };
+  const check = async (url) => {
+    for (const method of ['HEAD', 'GET']) {
+      try {
+        const res = await fetchImpl(url, { method, redirect: 'follow', signal: AbortSignal.timeout(timeoutMs) });
+        if (res.ok) return 'ok';
+        // Plenty of sites reject HEAD or bots; only a 404/410 is a clear "gone".
+        if (method === 'GET') return res.status === 404 || res.status === 410 ? `broken (${res.status})` : 'ok';
+      } catch (err) {
+        if (method === 'GET') return `unreachable (${err.name === 'TimeoutError' ? 'timeout' : err.cause?.code || err.message})`.slice(0, 80);
+      }
+    }
+    return 'ok';
+  };
+  let i = 0;
+  async function worker() {
+    while (i < rows.length) {
+      const r = rows[i++];
+      const status = await check(r.website);
+      update.run(status, r.id);
+      summary.checked++;
+      if (status === 'ok') summary.ok++;
+      else summary.broken.push({ id: r.id, website: r.website, status });
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(concurrency, rows.length) }, worker));
+  return summary;
+}
+
 module.exports = {
   createIntake,
+  refreshSearch,
+  validateReferral,
+  unvalidateReferral,
+  checkLinks,
   getClientByCode,
   referralsFor,
   recordOutcome,

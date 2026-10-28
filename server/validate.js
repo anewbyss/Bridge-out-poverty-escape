@@ -1,7 +1,6 @@
 'use strict';
 
 const T = require('./taxonomy');
-const { impliedNeeds } = require('./matcher');
 
 class ValidationError extends Error {
   constructor(errors) {
@@ -45,9 +44,11 @@ function validateIntake(body) {
   const b = body && typeof body === 'object' ? body : {};
   const out = {};
 
-  const age = Number(b.age);
-  if (!Number.isInteger(age)) errors.push('Age is required');
-  else if (age < T.AGE_MIN || age > T.AGE_MAX) errors.push(`This tool serves ages ${T.AGE_MIN}–${T.AGE_MAX}`);
+  // Only consent is required. Everything else improves matches but the tool
+  // works with whatever we're given.
+  const age = b.age == null || b.age === '' ? null : Number(b.age);
+  if (age != null && !Number.isInteger(age)) errors.push('Age should be a whole number');
+  else if (age != null && (age < T.AGE_MIN || age > T.AGE_MAX)) errors.push(`This tool serves ages ${T.AGE_MIN}–${T.AGE_MAX}`);
   out.age = age;
 
   for (const key of SINGLE) {
@@ -56,7 +57,6 @@ function validateIntake(body) {
     else if (!ID_SETS[key].has(v)) errors.push(`Unknown ${key}: ${v}`);
     else out[key] = v;
   }
-  if (!out.county) errors.push('Please choose a county');
 
   for (const key of MULTI) {
     const v = b[key] == null ? [] : b[key];
@@ -68,7 +68,6 @@ function validateIntake(body) {
     if (bad.length) errors.push(`Unknown ${key}: ${bad.join(', ')}`);
     out[key] = [...new Set(v)];
   }
-  if (!out.needs?.length && !impliedNeeds(out).length) errors.push('Choose at least one thing you need help with');
 
   out.zip = cleanText(b.zip, 10);
   if (out.zip && !/^\d{5}$/.test(out.zip)) errors.push('ZIP code should be 5 digits');
@@ -79,7 +78,10 @@ function validateIntake(body) {
 
   if (b.consent !== true) errors.push('Please agree to how your information is used');
 
-  out.contact_ok = b.contact_ok === true;
+  // Private search: matches use every answer, but only age, area, language and
+  // needs are stored (see store.createIntake).
+  out.confidential = b.confidential === true;
+  out.contact_ok = b.contact_ok === true && !out.confidential;
   out.contact_method = out.contact_ok ? cleanText(b.contact_method, 20) : null;
   out.contact_value = out.contact_ok ? cleanText(b.contact_value, 200) : null;
   if (out.contact_ok && !['text', 'call', 'email'].includes(out.contact_method)) errors.push('Choose how we can contact you');
@@ -107,6 +109,7 @@ const RESOURCE_LISTS = {
   counties: new Set([...ID_SETS.county, 'all']),
   languages: ID_SETS.language,
   culturally_specific: ID_SETS.race,
+  flags: new Set([...T.ids(T.PREFERENCES), ...T.ids(T.RESOURCE_FLAGS)]),
 };
 
 function validateResource(body) {
@@ -149,7 +152,7 @@ function validateResource(body) {
     counties: b.counties,
     languages: b.languages?.length ? b.languages : ['en'],
     culturally_specific: b.culturally_specific || [],
-    flags: (Array.isArray(b.flags) ? b.flags : []).map((f) => String(f).slice(0, 40)).slice(0, 20),
+    flags: b.flags || [],
     age_min: min,
     age_max: max,
     phone: text('phone', 60),
