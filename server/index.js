@@ -41,6 +41,18 @@ if (app.live.enabled) {
   console.log('Live lookup is off (set HSDS_API_URL or NDP_SEARCH_URL + NDP_API_KEY to turn it on).');
 }
 
+if (process.env.DISCOVERY !== 'off') {
+  // Public-records discovery: a minute after start, then every DISCOVERY_DAYS (default 7).
+  const days = Number(process.env.DISCOVERY_DAYS) || 7;
+  const run = () =>
+    app.discovery.runAll().then(
+      (r) => console.log(`Discovery: ${r.map((x) => `${x.id} ${x.status} (${x.found ?? 0} new)`).join('; ')}`),
+      (err) => console.error('Discovery failed', err)
+    );
+  setTimeout(run, 60 * 1000).unref();
+  setInterval(run, days * 86400 * 1000).unref();
+}
+
 http.createServer(app.handle).listen(PORT, () => {
   console.log(`Bridge Out of Poverty running at http://localhost:${PORT}`);
   console.log(`Staff dashboard: http://localhost:${PORT}/staff`);

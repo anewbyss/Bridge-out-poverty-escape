@@ -7,6 +7,7 @@ const db_ = require('./db');
 const store = require('./store');
 const { createAuth } = require('./auth');
 const { createLive } = require('./live');
+const { createDiscovery } = require('./discovery');
 const { searchNeeds } = require('./matcher');
 const { validateIntake, validateOutcome, validateResource, ValidationError } = require('./validate');
 
@@ -103,11 +104,12 @@ const resultsPayload = (r) => ({
   usedDefaults: r.usedDefaults,
 });
 
-function createApp({ dbFile, staffPassword, sessionSecret, secureCookies = false, linkFetch = fetch, liveProviders = [], liveOptions = {} }) {
+function createApp({ dbFile, staffPassword, sessionSecret, secureCookies = false, linkFetch = fetch, liveProviders = [], liveOptions = {}, discoveryFetch = fetch }) {
   const db = db_.open(dbFile);
   const seeded = db_.syncSeed(db);
   const auth = createAuth({ password: staffPassword, secret: sessionSecret });
   const live = createLive(db, { providers: liveProviders, ...liveOptions });
+  const discovery = createDiscovery(db, { fetchImpl: discoveryFetch });
 
   const routes = [];
   const route = (method, pattern, handler, { staff = false } = {}) => {
@@ -261,6 +263,77 @@ function createApp({ dbFile, staffPassword, sessionSecret, secureCookies = false
     return live.syncAll();
   }, { staff: true });
 
+  // ---------- Discovery (public records → leads for review) ----------
+  route('GET', '/api/staff/discovery/sources', () => discovery.listSources(), { staff: true });
+
+  route('GET', '/api/staff/discovery/leads', (_req, _p, _res, url) =>
+    discovery.listLeads({
+      status: url.searchParams.get('status') || 'new',
+      q: url.searchParams.get('q') || null,
+      need: url.searchParams.get('need') || null,
+    }), { staff: true });
+
+  route('POST', '/api/staff/discovery/sources', async (req) => {
+    const b = await readJson(req);
+    const name = String(b.name || '').trim().slice(0, 200);
+    let url;
+    try {
+      url = new URL(String(b.url || ''));
+    } catch {
+      throw new HttpError(400, 'Enter a full web address (https://…)');
+    }
+    if (!/^https?:$/.test(url.protocol)) throw new HttpError(400, 'Web address must start with http:// or https://');
+    if (!name) throw new HttpError(400, 'Give the page a name');
+    const needs = validateIntake({ needs: Array.isArray(b.needs) ? b.needs : [], consent: true }).needs;
+    return discovery.addWebpageSource({ name, url: url.href, needs, network: b.network === true });
+  }, { staff: true });
+
+  route('POST', '/api/staff/discovery/sources/:id/run', async (_req, { id }) => {
+    const r = await discovery.runSource(id);
+    if (!r) throw new HttpError(404, 'Source not found');
+    return r;
+  }, { staff: true });
+
+  route('POST', '/api/staff/discovery/sources/:id/enabled', async (req, { id }) => {
+    const { enabled } = await readJson(req);
+    if (!discovery.setSourceEnabled(id, enabled === true)) throw new HttpError(404, 'Source not found');
+    return { ok: true };
+  }, { staff: true });
+
+  route('DELETE', '/api/staff/discovery/sources/:id', (_req, { id }) => {
+    if (!discovery.deleteSource(id)) throw new HttpError(400, 'Built-in sources can be turned off but not deleted');
+    return { ok: true };
+  }, { staff: true });
+
+  route('POST', '/api/staff/discovery/run-all', () => discovery.runAll(), { staff: true });
+
+  route('POST', '/api/staff/discovery/leads/:id/dismiss', async (req, { id }) => {
+    const { note } = await readJson(req);
+    if (!discovery.setLeadStatus(Number(id), 'dismissed', { note: note ? String(note).slice(0, 500) : null }))
+      throw new HttpError(404, 'Lead not found');
+    return { ok: true };
+  }, { staff: true });
+
+  route('POST', '/api/staff/discovery/leads/:id/restore', async (_req, { id }) => {
+    const lead = discovery.getLead(Number(id));
+    if (!lead) throw new HttpError(404, 'Lead not found');
+    discovery.setLeadStatus(lead.id, lead.resource_id ? 'known' : 'new');
+    return { ok: true };
+  }, { staff: true });
+
+  // Staff reviewed a lead and turned it into a directory program.
+  route('POST', '/api/staff/discovery/leads/:id/add', async (req, { id }) => {
+    const lead = discovery.getLead(Number(id));
+    if (!lead) throw new HttpError(404, 'Lead not found');
+    const r = validateResource(await readJson(req));
+    if (db_.getResource(db, r.id)) throw new HttpError(409, 'A program with that ID already exists — edit the name or ID');
+    const saved = db_.upsertResource(db, r, { edited: 1, source: 'discovered' });
+    discovery.setLeadStatus(lead.id, 'added', { resourceId: saved.id });
+    return saved;
+  }, { staff: true });
+
+  route('GET', '/api/staff/resources/:id/records', (_req, { id }) => discovery.evidenceForResource(id), { staff: true });
+
   route('GET', '/api/staff/resources', () => {
     const stats = store.resourceStats(db);
     return db_.listResources(db, { includeInactive: true }).map((r) => ({ ...r, stats: stats[r.id] || null }));
@@ -329,7 +402,7 @@ function createApp({ dbFile, staffPassword, sessionSecret, secureCookies = false
     }
   }
 
-  return { handle, db, seeded, live };
+  return { handle, db, seeded, live, discovery };
 }
 
 module.exports = { createApp };

@@ -85,6 +85,26 @@ Connect a source with environment variables:
 
 **Getting data access:** 211info holds the most complete Portland-area database. It doesn't publish an open API; it shares data through partners (Connect Oregon / Unite Us) and the 211 National Data Platform. Contact 211info's resource team, or sign up at the 211 API portal. The 211 adapter follows the portal's keyword-search pattern but **has not been tested against the real API**; check field names once you have a key (the parser is in `server/live.js`). The Open Referral adapter follows the published HSDS standard.
 
+## Discovery from public records (staff → **Discover** tab)
+
+Finds organizations serving the Portland daily-access area from public information and queues them as **leads** for staff review. Each lead shows its evidence with links to the original record.
+
+| Source | What it finds |
+|---|---|
+| **Federal grants & subawards** ([USAspending.gov API](https://api.usaspending.gov), no key) | Organizations in Multnomah, Washington, Clackamas and Clark counties receiving federal funds for youth homelessness (Transitional Living, Basic Center, Street Outreach), WIOA Youth, YouthBuild, Chafee, HUD Continuum of Care, Emergency Solutions, Emergency Food & Shelter, LIHEAP, CSBG, VOCA/VAWA/FVPSA (DV), Second Chance (reentry) and family programs. Includes **subawards**, which is how state and county money reaches local providers. |
+| **IRS nonprofit registry** (Exempt Organizations list for OR and WA) | Established nonprofits in access-area cities whose activity code covers housing, shelter, youth development, food, jobs, mental health, DV, legal and reentry help. Revenue must be at least $25k. |
+| **County listings & community networks** | Any public page staff add, such as a county resource page or a coalition member list. Starts with the OCADSV member programs page and the Multnomah County shelter page. Organizations linked from the page become leads, and staff are told when the page changes. |
+
+- **Ranking:** youth-specific federal programs and network membership count most. Agreement across independent sources adds a bonus, and government agencies rank lower.
+- **Known organizations:** organizations already in the directory are linked under "Already in directory" instead of being suggested again. Their public records appear at `/api/staff/resources/:id/records`.
+- **Review & add** opens the program form pre-filled (name, website, address, needs, county), so staff can confirm ages, area and cost before youth see it. **Dismiss** keeps a note on why.
+- Runs a minute after startup and then weekly (`DISCOVERY_DAYS`, or `DISCOVERY=off` to disable). Any source can be run on demand or turned off.
+- **Program websites are watched too:** **Check websites** now notices when a program's page text changes, and flags it **Website changed — re-verify**.
+
+Leads aren't shown to youth automatically. Funding and registry records say who provides services, not who a young person can walk in to today.
+
+**Network access:** the server needs outbound HTTPS to `api.usaspending.gov`, `www.irs.gov`, and any pages you add (e.g. `www.multco.us`, `ocadsv.org`).
+
 ## ⚠️ The starter directory must be verified
 
 `data/resources.seed.json` has about 80 real Portland-area, Oregon and national programs. It loads only once, into an empty database. **Every entry starts as "not yet verified"** and youth are told to call ahead. Programs, ages, hours and funding change often, especially rent and energy assistance. Before launch, a staff member should check each program on the **Resources** tab and click **Verified**. Phone numbers were only included where well known; most entries link to the program's website.
@@ -104,7 +124,7 @@ The starter list includes:
 ## Layout
 
 ```
-server/  index.js (entry) · app.js (routes) · matcher.js · store.js (DB ops + reports) · live.js (live lookup)
+server/  index.js (entry) · app.js (routes) · matcher.js · store.js (DB ops + reports) · live.js (live lookup) · discovery.js (public records)
          db.js (schema, seed) · taxonomy.js (all answer options) · validate.js · auth.js
 public/  index.html + intake.js · followup · directory · staff · common.js · styles.css
 data/    resources.seed.json

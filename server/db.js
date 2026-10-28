@@ -191,6 +191,8 @@ const ADDED_COLUMNS = {
     live_seen_at: 'TEXT',
     live_provider: 'TEXT',
     live_miles: 'REAL',
+    page_hash: 'TEXT',
+    page_changed_at: 'TEXT',
   },
   clients: { confidential: 'INTEGER NOT NULL DEFAULT 0' },
   referrals: { validated_at: 'TEXT', validated_by: 'TEXT', validation_note: 'TEXT' },

@@ -36,7 +36,7 @@
   });
 
   // ---------- Tabs ----------
-  const loaders = { dashboard: loadDashboard, clients: loadClients, resources: loadResources };
+  const loaders = { dashboard: loadDashboard, clients: loadClients, resources: loadResources, discover: loadDiscover };
   function showTab(name) {
     for (const b of document.querySelectorAll('[data-tab]')) b.setAttribute('aria-selected', String(b.dataset.tab === name));
     for (const k of Object.keys(loaders)) $(`tab-${k}`).classList.toggle('hidden', k !== name);
@@ -341,7 +341,10 @@
         el('td', { class: 'small' }, r.categories.map((c) => T.label.NEEDS[c] || c).join(', ')),
         el('td', { class: 'small' }, r.counties.includes('all') ? 'Anywhere' : r.counties.map((c) => T.label.COUNTIES[c]?.split(' (')[0] || c).join(', ')),
         el('td', {}, `${r.age_min}–${r.age_max}`),
-        el('td', {}, isStale(r) ? el('span', { class: 'badge warn' }, r.last_verified ? fmtDate(r.last_verified) : 'Never') : fmtDate(r.last_verified)),
+        el('td', {}, isStale(r) ? el('span', { class: 'badge warn' }, r.last_verified ? fmtDate(r.last_verified) : 'Never') : fmtDate(r.last_verified),
+          r.page_changed_at && (!r.last_verified || r.page_changed_at.slice(0, 10) > r.last_verified)
+            ? el('div', {}, el('span', { class: 'badge warn', title: `Website text changed ${fmtDate(r.page_changed_at)}` }, 'Website changed — re-verify'))
+            : null),
         el('td', { class: 'small' },
           !r.link_status ? '—' : r.link_status === 'ok' ? '✓ loads' : el('span', { class: 'badge warn' }, r.link_status)),
         el('td', {}, r.stats ? `${r.stats.referrals} → ${r.stats.successes} (${r.stats.validated} ✓)` : '—'),
@@ -496,20 +499,167 @@
           tbody)));
   }
 
+  // ---------- Discover ----------
+  const discState = { status: 'new', q: '', need: '' };
+
+  async function loadDiscover() {
+    const qs = new URLSearchParams(Object.entries(discState).filter(([, v]) => v));
+    const [sources, { leads, counts }] = await Promise.all([api('/api/staff/discovery/sources'), api(`/api/staff/discovery/leads?${qs}`)]);
+    const runMsg = el('div', { 'aria-live': 'polite' });
+    const run = async (path, label) => {
+      mount(runMsg, el('p', { class: 'muted' }, `${label}… (large public files can take a few minutes)`));
+      try {
+        await api(path, { method: 'POST', body: {} });
+        await loadDiscover();
+      } catch (err) {
+        if (err.status === 401) return handleError(err);
+        mount(runMsg, errorBox(err));
+      }
+    };
+
+    const addName = el('input', { type: 'text', placeholder: 'e.g. Coalition member list' });
+    const addUrl = el('input', { type: 'text', placeholder: 'https://…' });
+    const addNetwork = el('input', { type: 'checkbox' });
+    const addNeeds = el('select', { multiple: true, size: 4 }, T.NEEDS.map((n) => el('option', { value: n.id }, n.label)));
+    const addErr = el('div');
+
+    const statusChip = (id, label) =>
+      el('button', {
+        class: `btn small ${discState.status === id ? '' : 'secondary'}`, type: 'button',
+        onclick: () => ((discState.status = id), loadDiscover().catch(handleError)),
+      }, `${label}${counts[id] != null ? ` (${counts[id]})` : ''}`);
+
+    const leadCard = (l) =>
+      el('article', { class: 'card' },
+        el('h3', {}, l.name, ' ', el('span', { class: 'badge', title: 'Higher = more public evidence' }, `score ${l.score}`)),
+        el('p', { class: 'small muted' }, [l.city, l.state].filter(Boolean).join(', ') || 'Location not listed',
+          l.website ? [' · ', el('a', { href: l.website, target: '_blank', rel: 'noopener noreferrer' }, l.website.replace(/^https?:\/\//, ''))] : null),
+        el('div', { class: 'chips' }, l.needs.map((n) => el('span', { class: 'badge' }, T.label.NEEDS[n] || n))),
+        el('ul', { class: 'small' },
+          l.evidence.map((e) => el('li', {}, el('strong', {}, `${e.source}: `), e.detail,
+            e.url ? [' ', el('a', { href: e.url, target: '_blank', rel: 'noopener noreferrer' }, 'record')] : null))),
+        l.note ? el('p', { class: 'small muted' }, `Note: ${l.note}`) : null,
+        el('div', { class: 'chips' },
+          l.status === 'new' || l.status === 'dismissed'
+            ? el('button', {
+                class: 'btn small', type: 'button',
+                onclick: () => editResource(null, {
+                  leadId: l.id,
+                  prefill: {
+                    name: l.name, website: l.website, address: l.address, categories: l.needs, populations: l.populations,
+                    counties: l.county ? [l.county] : [],
+                  },
+                }),
+              }, 'Review & add')
+            : null,
+          l.status === 'new'
+            ? el('button', {
+                class: 'btn secondary small', type: 'button',
+                onclick: async () => {
+                  const note = prompt('Why dismiss? (optional, e.g. "not for youth", "closed")', '');
+                  if (note === null) return;
+                  await api(`/api/staff/discovery/leads/${l.id}/dismiss`, { method: 'POST', body: { note } }).catch(handleError);
+                  loadDiscover().catch(handleError);
+                },
+              }, 'Dismiss')
+            : null,
+          l.status === 'dismissed'
+            ? el('button', { class: 'btn secondary small', type: 'button', onclick: async () => {
+                await api(`/api/staff/discovery/leads/${l.id}/restore`, { method: 'POST', body: {} }).catch(handleError);
+                loadDiscover().catch(handleError);
+              } }, 'Restore')
+            : null,
+          l.resource_id ? el('span', { class: 'badge' }, `In directory: ${l.resource_id}`) : null));
+
+    mount($('tab-discover'),
+      el('section', { class: 'card' },
+        el('h3', {}, 'Public sources'),
+        el('p', { class: 'hint' },
+          'Finds organizations serving the Portland daily-access area from federal grant and contract records, the IRS nonprofit registry, county listings, and community-network member pages. Runs weekly; results come to you as leads to review.'),
+        el('div', { class: 'table-wrap' },
+          el('table', {},
+            el('thead', {}, el('tr', {}, ['Source', 'Last run', 'Result', 'On', ''].map((h) => el('th', {}, h)))),
+            el('tbody', {},
+              sources.map((s) =>
+                el('tr', {},
+                  el('td', {}, el('strong', {}, s.name), el('div', { class: 'small muted' }, el('a', { href: s.url, target: '_blank', rel: 'noopener noreferrer' }, new URL(s.url).hostname))),
+                  el('td', { class: 'small' }, s.last_run_at ? fmtDate(s.last_run_at) : 'Never'),
+                  el('td', { class: 'small' },
+                    !s.last_status ? '—'
+                      : s.last_status.startsWith('error') ? el('span', { class: 'badge warn' }, s.last_status)
+                      : `${s.last_status}${s.last_found != null ? ` · ${s.last_found} new records` : ''}`),
+                  el('td', {}, el('input', {
+                    type: 'checkbox', checked: s.enabled, 'aria-label': `Run ${s.name} automatically`,
+                    onchange: (e) => api(`/api/staff/discovery/sources/${encodeURIComponent(s.id)}/enabled`, { method: 'POST', body: { enabled: e.target.checked } }).catch(handleError),
+                  })),
+                  el('td', {}, el('div', { class: 'chips' },
+                    el('button', { class: 'btn secondary small', type: 'button', onclick: () => run(`/api/staff/discovery/sources/${encodeURIComponent(s.id)}/run`, `Running ${s.name}`) }, 'Run now'),
+                    s.id.startsWith('web-')
+                      ? el('button', { class: 'btn danger small', type: 'button', onclick: async () => {
+                          if (!confirm(`Stop watching ${s.name}?`)) return;
+                          await api(`/api/staff/discovery/sources/${encodeURIComponent(s.id)}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } }).catch(handleError);
+                          loadDiscover().catch(handleError);
+                        } }, 'Remove')
+                      : null))))))),
+        el('div', { class: 'actions' },
+          el('button', { class: 'btn', type: 'button', onclick: () => run('/api/staff/discovery/run-all', 'Running all sources') }, '↻ Run all sources now'),
+          runMsg),
+        el('details', {},
+          el('summary', {}, 'Watch another public page (county listing, coalition or network member list)'),
+          addErr,
+          el('div', { class: 'toolbar' },
+            el('label', { class: 'grow' }, 'Name', addName),
+            el('label', { class: 'grow' }, 'Web address', addUrl),
+            el('label', {}, 'Default needs (Ctrl/⌘-click for several)', addNeeds)),
+          el('label', { class: 'chip' }, addNetwork, 'This is an established community network / coalition member list'),
+          el('div', { class: 'actions' }, el('span'),
+            el('button', {
+              class: 'btn small', type: 'button',
+              onclick: async () => {
+                try {
+                  const s = await api('/api/staff/discovery/sources', {
+                    method: 'POST',
+                    body: { name: addName.value, url: addUrl.value.trim(), network: addNetwork.checked, needs: [...addNeeds.selectedOptions].map((o) => o.value) },
+                  });
+                  await run(`/api/staff/discovery/sources/${encodeURIComponent(s.id)}/run`, `Reading ${s.name}`);
+                } catch (err) {
+                  if (err.status === 401) return handleError(err);
+                  mount(addErr, errorBox(err));
+                }
+              },
+            }, 'Add & read page')))),
+
+      el('section', {},
+        el('h2', {}, 'Leads'),
+        el('div', { class: 'card toolbar' },
+          statusChip('new', 'To review'), statusChip('known', 'Already in directory'), statusChip('added', 'Added'), statusChip('dismissed', 'Dismissed'),
+          el('label', { class: 'grow' }, 'Search',
+            el('input', { type: 'search', value: discState.q, onchange: (e) => ((discState.q = e.target.value.trim()), loadDiscover().catch(handleError)) })),
+          el('label', {}, 'Need',
+            el('select', { onchange: (e) => ((discState.need = e.target.value), loadDiscover().catch(handleError)) },
+              el('option', { value: '' }, 'Any'),
+              T.NEEDS.map((n) => el('option', { value: n.id, selected: discState.need === n.id }, n.label))))),
+        leads.length ? leads.map(leadCard) : el('p', { class: 'muted' }, 'No leads here yet. Run the sources above.')));
+  }
+
   function checkList(name, list, selected) {
     return el('div', { class: 'chips' },
       list.map((o) => el('label', { class: 'chip' }, el('input', { type: 'checkbox', name, value: o.id, checked: selected.includes(o.id) }), o.label)));
   }
 
-  function editResource(r) {
-    const v = r || { categories: [], populations: [], requires: [], counties: [], languages: ['en'], culturally_specific: [], flags: [], age_min: 9, age_max: 26, active: true };
+  // `opts.prefill` starts a new program from a discovery lead; `opts.leadId`
+  // saves it through the lead so the lead is marked added.
+  function editResource(r, opts = {}) {
+    const blank = { categories: [], populations: [], requires: [], counties: [], languages: ['en'], culturally_specific: [], flags: [], age_min: 9, age_max: 26, active: true };
+    const v = r || { ...blank, ...(opts.prefill || {}) };
     const input = (name, label, attrs = {}) =>
       el('label', { class: 'label' }, label, el('input', { type: 'text', name, value: v[name] ?? '', ...attrs }));
     const errs = el('div');
     const counties = [{ id: 'all', label: 'Anywhere (statewide / national)' }, ...T.COUNTIES];
     const flagOptions = [...T.RESOURCE_FLAGS, ...T.PREFERENCES];
     const form = el('form', {},
-      el('h2', {}, r ? `Edit ${r.name}` : 'Add a program'),
+      el('h2', {}, r ? `Edit ${r.name}` : opts.leadId ? 'Add to directory' : 'Add a program'),
+      opts.leadId ? el('p', { class: 'notice' }, 'Check the program’s website or call them to confirm it serves young people (ages, area, cost) before adding.') : null,
       errs,
       el('div', { class: 'row' }, input('name', 'Name *', { required: true }), input('org', 'Organization')),
       el('label', { class: 'label' }, 'Description', el('textarea', { name: 'description' }, v.description || '')),
@@ -548,9 +698,9 @@
         body[k] = fd.get(k) || null;
       for (const k of ['categories', 'counties', 'populations', 'requires', 'culturally_specific', 'languages', 'flags']) body[k] = fd.getAll(k);
       try {
-        await api('/api/staff/resources', { method: 'POST', body });
+        await api(opts.leadId ? `/api/staff/discovery/leads/${opts.leadId}/add` : '/api/staff/resources', { method: 'POST', body });
         dialog.close();
-        loadResources();
+        (opts.leadId ? loadDiscover : loadResources)().catch(handleError);
       } catch (err) {
         if (err.status === 401) return handleError(err);
         mount(errs, errorBox(err));

@@ -397,31 +397,50 @@ function exportReferralsCsv(db) {
   return lines.join('\n') + '\n';
 }
 
+// Visible text only, so rotating ads/scripts/tokens don't count as changes.
+function hashPageText(html) {
+  const text = String(html)
+    .replace(/<(script|style|noscript|svg)[\s\S]*?<\/\1>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return crypto.createHash('sha256').update(text).digest('hex');
+}
+
 // Checks every active resource's website and records whether it loaded.
 // `fetchImpl` is injectable for tests.
 async function checkLinks(db, { fetchImpl = fetch, timeoutMs = 8000, concurrency = 6 } = {}) {
-  const rows = db.prepare("SELECT id, website FROM resources WHERE active = 1 AND website IS NOT NULL AND website != ''").all();
+  const rows = db.prepare("SELECT id, website, page_hash FROM resources WHERE active = 1 AND website IS NOT NULL AND website != ''").all();
   const update = db.prepare("UPDATE resources SET link_status = ?, link_checked_at = datetime('now') WHERE id = ?");
-  const summary = { checked: 0, ok: 0, broken: [] };
+  // A program's own website changing is a hint its details (hours, rules,
+  // funding) changed too, so staff are asked to re-verify.
+  const updateHash = db.prepare(
+    `UPDATE resources SET page_hash = ?,
+            page_changed_at = CASE WHEN page_hash IS NOT NULL AND page_hash != ? THEN datetime('now') ELSE page_changed_at END
+      WHERE id = ?`
+  );
+  const summary = { checked: 0, ok: 0, broken: [], changed: [] };
   const check = async (url) => {
-    for (const method of ['HEAD', 'GET']) {
-      try {
-        const res = await fetchImpl(url, { method, redirect: 'follow', signal: AbortSignal.timeout(timeoutMs) });
-        if (res.ok) return 'ok';
-        // Plenty of sites reject HEAD or bots; only a 404/410 is a clear "gone".
-        if (method === 'GET') return res.status === 404 || res.status === 410 ? `broken (${res.status})` : 'ok';
-      } catch (err) {
-        if (method === 'GET') return `unreachable (${err.name === 'TimeoutError' ? 'timeout' : err.cause?.code || err.message})`.slice(0, 80);
-      }
+    try {
+      const res = await fetchImpl(url, { method: 'GET', redirect: 'follow', signal: AbortSignal.timeout(timeoutMs) });
+      // Plenty of sites block bots; only a 404/410 is a clear "gone".
+      if (!res.ok) return { status: res.status === 404 || res.status === 410 ? `broken (${res.status})` : 'ok' };
+      const body = typeof res.text === 'function' ? await res.text().catch(() => null) : null;
+      return { status: 'ok', hash: body == null ? null : hashPageText(body) };
+    } catch (err) {
+      return { status: `unreachable (${err.name === 'TimeoutError' ? 'timeout' : err.cause?.code || err.message})`.slice(0, 80) };
     }
-    return 'ok';
   };
   let i = 0;
   async function worker() {
     while (i < rows.length) {
       const r = rows[i++];
-      const status = await check(r.website);
+      const { status, hash } = await check(r.website);
       update.run(status, r.id);
+      if (hash) {
+        if (r.page_hash && r.page_hash !== hash) summary.changed.push(r.id);
+        updateHash.run(hash, hash, r.id);
+      }
       summary.checked++;
       if (status === 'ok') summary.ok++;
       else summary.broken.push({ id: r.id, website: r.website, status });
