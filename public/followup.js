@@ -81,6 +81,30 @@
       el('div', { class: 'actions' }, btn, msg));
   }
 
+  // Right to delete: the youth can erase their own record with their code.
+  function deletePanel() {
+    const msg = el('div', { 'aria-live': 'polite' });
+    const btn = el('button', { class: 'btn danger small', type: 'button' }, 'Delete my record');
+    btn.addEventListener('click', async () => {
+      if (!confirm(`Permanently delete everything saved under code ${code}? This can’t be undone, and staff won’t be able to follow up.`)) return;
+      btn.disabled = true;
+      try {
+        await api(`/api/followup/${encodeURIComponent(code)}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } });
+        code = null;
+        codeInput.value = '';
+        mount(document.getElementById('refreshed'));
+        mount(list, el('div', { class: 'card' }, el('h2', {}, 'Deleted'), el('p', {}, 'Your record and check-ins have been permanently deleted. You can start a new search any time.')));
+      } catch (err) {
+        btn.disabled = false;
+        mount(msg, errorBox(err));
+      }
+    });
+    return el('details', { class: 'card no-print' },
+      el('summary', {}, 'Privacy: delete my record'),
+      el('p', { class: 'small' }, 'This permanently erases your answers, matches and check-ins. Refer-me requests you sent are separate — ask staff if you want those deleted too.'),
+      el('div', { class: 'actions' }, el('span'), btn), msg);
+  }
+
   function render(data) {
     const byNeed = new Map();
     for (const r of data.referrals) {
@@ -88,6 +112,7 @@
       byNeed.get(r.need).push(r);
     }
     mount(list,
+      deletePanel(),
       refreshPanel(),
       el('h2', {}, 'Programs we suggested'),
       el('p', { class: 'muted' }, `Code ${data.refCode} · first searched ${fmtDate(data.createdAt)} · ${data.referrals.length} programs`),
@@ -101,6 +126,7 @@
                 el('span', { class: r.status === 'received' ? 'badge' : 'badge warn' }, T.label.OUTCOMES[r.status] || r.status),
                 r.validated_at ? el('span', { class: 'badge' }, ' ✓ Confirmed by staff') : null),
               contactLine(r),
+              el('div', { class: 'actions' }, el('span'), referButton({ resource_id: r.resource_id, resource_name: r.name, need: r.need, ref_code: data.refCode }, 'Refer me — have staff help me connect')),
               outcomeForm(r)))))
     );
   }

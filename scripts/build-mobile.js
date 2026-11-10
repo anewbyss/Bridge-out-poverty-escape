@@ -14,10 +14,10 @@ const path = require('node:path');
 
 const ROOT = path.join(__dirname, '..');
 const OUT = path.resolve(process.argv[2] || path.join(ROOT, 'site'));
-const PAGES = ['index.html', 'followup.html', 'directory.html', 'staff.html'];
+const PAGES = ['index.html', 'followup.html', 'directory.html', 'staff.html', 'qualify.html', 'privacy.html', 'terms.html', 'disclaimer.html', 'security.html'];
 
 const MODULES = [
-  'server/taxonomy', 'server/matcher', 'server/validate', 'server/db', 'server/store',
+  'server/taxonomy', 'server/roles', 'server/matcher', 'server/validate', 'server/db', 'server/store', 'server/benefits', 'server/requests',
   'server/live', 'server/discovery', 'server/app', 'mobile/auth', 'mobile/shims',
 ];
 const BUILTINS = {
@@ -71,8 +71,8 @@ const REWRITES = [
   [/href="\/"/g, 'href="index.html"'],
   [/href: '\/'/g, "href: 'index.html'"],
   [/(["'`])\/\?staff=1/g, '$1index.html?staff=1'],
-  [/(["'`])\/(styles\.css|common\.js|intake\.js|followup\.js|directory\.js|staff\.js)/g, '$1$2'],
-  [/(["'`])\/(followup|directory|staff)(?=["'`?])/g, '$1$2.html'],
+  [/(["'`])\/(styles\.css|common\.js|intake\.js|followup\.js|directory\.js|staff\.js|qualify\.js)/g, '$1$2'],
+  [/(["'`])\/(followup|directory|staff|qualify|privacy|terms|disclaimer|security)(?=["'`?])/g, '$1$2.html'],
 ];
 
 const HEAD = `  <meta name="theme-color" content="#1d6b5f">

@@ -2337,5 +2337,475 @@
       "lgbtq_affirming",
       "online"
     ]
+  },
+  {
+    "id": "hyc-access-center",
+    "name": "Homeless Youth Continuum – Access Center",
+    "org": "Multnomah County Homeless Youth Continuum",
+    "description": "One phone screening connects young people experiencing homelessness to youth housing, shelter, drop-in, legal and parenting services at New Avenues for Youth, Outside In and Janus Youth Programs.",
+    "categories": [
+      "housing",
+      "emergency_shelter",
+      "basic_needs"
+    ],
+    "populations": [
+      "unhoused"
+    ],
+    "counties": [
+      "multnomah"
+    ],
+    "age_min": 9,
+    "age_max": 24,
+    "phone": "503-432-3986",
+    "website": "https://newavenues.org/drop-in-day/",
+    "eligibility": "Young people up to age 24 experiencing or at risk of homelessness in Multnomah County. Screening by phone.",
+    "flags": [
+      "youth_only"
+    ]
+  },
+  {
+    "id": "nafy-alba",
+    "name": "Alba Collaborative – 24/7 Youth Opportunity Center (ages 9–17)",
+    "org": "New Avenues for Youth",
+    "description": "Open 24/7 for youth 9–17 in crisis or needing a safe place to stay: beds, meals, showers, hygiene supplies, case management, mentorship, and help with school, jobs and LGBTQIA2S+ services. A partnership of New Avenues, Youth Progress, National Safe Place Network and Multnomah County. Daytime drop-in (Mon–Fri 10 am–6 pm) also serves ages 9–24.",
+    "categories": [
+      "emergency_shelter",
+      "housing",
+      "food",
+      "basic_needs",
+      "mentoring",
+      "education",
+      "crisis"
+    ],
+    "populations": [
+      "minor",
+      "unhoused"
+    ],
+    "counties": [
+      "multnomah"
+    ],
+    "age_min": 9,
+    "age_max": 17,
+    "phone": "971-754-4350",
+    "website": "https://newavenues.org/alba/",
+    "address": "470 SE 165th Ave, Portland, OR 97233",
+    "hours": "24/7 for ages 9–17. Drop-in Mon–Fri 10 am–6 pm (ages 9–24).",
+    "eligibility": "Anyone 9–17. Drop in or call.",
+    "crisis": true,
+    "flags": [
+      "walk_in",
+      "youth_only",
+      "lgbtq_affirming"
+    ]
+  },
+  {
+    "id": "nafy-drop-in",
+    "name": "New Avenues Drop-In Day Services",
+    "org": "New Avenues for Youth",
+    "description": "Meals six days a week, showers, laundry, clothes, computers and internet, activities and supportive advocates who connect youth to education, job training, employment, housing and LGBTQIA2S+ supports. Downtown and East Multnomah County locations.",
+    "categories": [
+      "basic_needs",
+      "food",
+      "phone_internet",
+      "mentoring",
+      "housing"
+    ],
+    "populations": [
+      "unhoused"
+    ],
+    "counties": [
+      "multnomah"
+    ],
+    "age_min": 14,
+    "age_max": 24,
+    "phone": "971-312-6846",
+    "website": "https://newavenues.org/drop-in-day/",
+    "address": "314 SW 9th Ave, Portland, OR 97205 (East: 470 SE 165th Ave)",
+    "hours": "Downtown: Mon–Fri 9–10 am, 1–3 pm, 3:30–6 pm; Sat 1–3 pm, 4–6:30 pm (meals in the first hour of each shift). East: Mon–Fri 10 am–6 pm.",
+    "eligibility": "Complete a screening with the Access Center (503-432-3986). Staff line Mon–Sat 10 am–6 pm: 971-312-6846. Age range not published — confirm with New Avenues.",
+    "flags": [
+      "walk_in",
+      "youth_only",
+      "lgbtq_affirming"
+    ]
+  },
+  {
+    "id": "nafy-east-connect",
+    "name": "New Avenues East Connect (outreach, ages 9–24)",
+    "org": "New Avenues for Youth",
+    "description": "Daily outreach in East Multnomah County schools and community hubs: basic needs, harm reduction supplies, resource navigation, education and job support, case management and free monthly youth events. Staff can complete Homeless Youth Continuum screens and intakes.",
+    "categories": [
+      "basic_needs",
+      "mentoring",
+      "education",
+      "employment",
+      "substance_use"
+    ],
+    "populations": [
+      "unhoused"
+    ],
+    "counties": [
+      "multnomah"
+    ],
+    "age_min": 9,
+    "age_max": 24,
+    "phone": "503-753-1506",
+    "text": "503-753-1506",
+    "website": "https://newavenues.org/east-connect/",
+    "address": "41 SE 102nd Ave, Portland, OR 97216",
+    "hours": "Drop-in Tue–Fri 2–5 pm (30-minute visits)",
+    "eligibility": "Ages 9–24 in East Multnomah County.",
+    "flags": [
+      "walk_in",
+      "text_chat",
+      "youth_only"
+    ]
+  },
+  {
+    "id": "nafy-housing",
+    "name": "New Avenues Housing & Shelter",
+    "org": "New Avenues for Youth",
+    "description": "Transitional and supportive housing: The Moxie (24 beds, downtown), Unity House (LGBTQIA2S+ youth), New Doors and New Meadows (youth from foster care), Butterfly House (ages 18–25 in the sex trades), plus help with apartments, vouchers and subsidies. Host homes and emergency shelter for ages 9–17 through Alba.",
+    "categories": [
+      "housing",
+      "emergency_shelter"
+    ],
+    "populations": [
+      "unhoused",
+      "foster",
+      "lgbtq",
+      "trafficking"
+    ],
+    "counties": [
+      "multnomah"
+    ],
+    "age_min": 9,
+    "age_max": 25,
+    "website": "https://newavenues.org/housing-and-shelter/",
+    "address": "1220 SW Columbia St, Portland, OR 97201",
+    "eligibility": "Screening through the Access Center (503-432-3986) or email housing staff with age, housing situation and foster care experience. Program-specific ages apply.",
+    "flags": [
+      "youth_only",
+      "lgbtq_affirming"
+    ]
+  },
+  {
+    "id": "nafy-new-day",
+    "name": "New Day – support for youth experiencing exploitation (ages 12–25)",
+    "org": "New Avenues for Youth",
+    "description": "Non-judgmental services for people 12–25 who are trading sex, experiencing sex trafficking or exploitation, or at risk: mentoring and advocacy, safety planning, transportation, shelter or housing access, education and employment programs, and LGBTQIA2S+ services. 24/7 crisis line through Call to Safety: 503-235-5333.",
+    "categories": [
+      "safety",
+      "mentoring",
+      "housing",
+      "employment",
+      "education",
+      "transportation"
+    ],
+    "populations": [
+      "trafficking"
+    ],
+    "requires": [
+      "trafficking"
+    ],
+    "counties": [
+      "multnomah"
+    ],
+    "age_min": 12,
+    "age_max": 25,
+    "phone": "503-258-7081",
+    "text": "503-258-7081",
+    "website": "https://newavenues.org/new-day/",
+    "hours": "Mon–Fri 10 am–6 pm (24/7: Call to Safety 503-235-5333)",
+    "eligibility": "Ages 12–25 experiencing or at risk of commercial sexual exploitation.",
+    "flags": [
+      "confidential",
+      "text_chat",
+      "lgbtq_affirming",
+      "youth_only"
+    ]
+  },
+  {
+    "id": "nafy-rose-thorn",
+    "name": "New Avenues ROSE & THORN – recovery and mental health",
+    "org": "New Avenues for Youth",
+    "description": "Free connection to treatment, counseling, recovery resources and peer support. THORN serves ages 9–24 through groups and Peer Support Specialist outreach; ROSE serves ages 16–24 with a Peer Support Specialist at the Drop-In Center. A Pathways mental health therapist offers one-on-one counseling.",
+    "categories": [
+      "substance_use",
+      "mental_health"
+    ],
+    "populations": [
+      "unhoused",
+      "trafficking",
+      "foster"
+    ],
+    "counties": [
+      "multnomah",
+      "clackamas"
+    ],
+    "age_min": 9,
+    "age_max": 24,
+    "phone": "503-517-3959",
+    "website": "https://newavenues.org/rose-addiction-recovery/",
+    "address": "314 SW 9th Ave, Portland, OR 97205",
+    "eligibility": "Ages 9–24 in Multnomah or Clackamas County experiencing housing instability, exploitation/trafficking, or in or aging out of child welfare custody. Free. Referral form or call any time.",
+    "flags": [
+      "youth_only"
+    ]
+  },
+  {
+    "id": "nafy-education",
+    "name": "New Avenues Education – GED & college access",
+    "org": "New Avenues for Youth",
+    "description": "Personalized education plans, one-on-one teacher and tutor support to prepare for and take the GED (official testing available), and help enrolling in college.",
+    "categories": [
+      "education"
+    ],
+    "populations": [
+      "unhoused"
+    ],
+    "counties": [
+      "multnomah"
+    ],
+    "age_min": 16,
+    "age_max": 24,
+    "phone": "503-517-3985",
+    "website": "https://newavenues.org/education/",
+    "address": "314 SW 9th Ave, Portland, OR 97205",
+    "hours": "Tue–Thu 10 am–1 pm, 2–4 pm",
+    "eligibility": "Youth served by New Avenues. Start with info & orientation. (Website lists two phone numbers — confirm.)",
+    "flags": [
+      "youth_only"
+    ]
+  },
+  {
+    "id": "nafy-pave",
+    "name": "New Avenues PAVE – job training, paid internships & social enterprises",
+    "org": "New Avenues for Youth",
+    "description": "Promoting Avenues to Employment: orientation, a career coach, self-paced job readiness training, a career lab for resumes and applications, and paid internships at New Avenues INK (screen printing, 1675 SE 6th Ave) and the Ben & Jerry’s PartnerShop (524 SW Yamhill St, Pioneer Courthouse Square).",
+    "categories": [
+      "employment",
+      "education"
+    ],
+    "populations": [
+      "unhoused",
+      "young_adult"
+    ],
+    "counties": [
+      "multnomah"
+    ],
+    "age_min": 16,
+    "age_max": 24,
+    "phone": "503-267-4382",
+    "website": "https://newavenues.org/job-training-and-employment/",
+    "address": "314 SW 9th Ave, Portland, OR 97205",
+    "eligibility": "Eligibility is reviewed at orientation.",
+    "flags": [
+      "youth_only"
+    ]
+  },
+  {
+    "id": "nafy-avenues-to-college",
+    "name": "New Avenues – Avenues to College (foster youth)",
+    "org": "New Avenues for Youth",
+    "description": "One-on-one coaching on college options, applications and enrollment, plus financial support for housing and living expenses, budgeting and scholarship help.",
+    "categories": [
+      "education",
+      "housing",
+      "mentoring"
+    ],
+    "populations": [
+      "foster"
+    ],
+    "requires": [
+      "foster"
+    ],
+    "counties": [
+      "multnomah"
+    ],
+    "age_min": 16,
+    "age_max": 24,
+    "phone": "503-206-1666",
+    "website": "https://newavenues.org/services-for-youth-transitioning-from-foster-care/",
+    "eligibility": "180+ days of foster placement after age 14; ages 16–24; current or family-of-origin address in the City of Portland.",
+    "flags": [
+      "youth_only"
+    ]
+  },
+  {
+    "id": "nafy-legal",
+    "name": "New Avenues Legal Clinic",
+    "org": "New Avenues for Youth",
+    "description": "An attorney helps remove barriers to housing, jobs and benefits: debt, record expungement, fine/fee waivers, felony reductions, name and gender marker changes, landlord disputes, custody and family issues.",
+    "categories": [
+      "legal",
+      "id_documents",
+      "eviction_help"
+    ],
+    "populations": [
+      "unhoused",
+      "justice"
+    ],
+    "counties": [
+      "multnomah"
+    ],
+    "age_min": 16,
+    "age_max": 24,
+    "phone": "503-432-3986",
+    "website": "https://newavenues.org/legal-services/",
+    "eligibility": "Must be screened into the Homeless Youth Continuum first (Access Center 503-432-3986).",
+    "flags": [
+      "youth_only",
+      "lgbtq_affirming"
+    ]
+  },
+  {
+    "id": "nafy-family-first",
+    "name": "New Avenues Family First – pregnant & parenting youth",
+    "org": "New Avenues for Youth",
+    "description": "Parent Support Specialist: pregnancy options counseling, birth planning, parenting groups, advocacy, and referrals for prenatal and postnatal care, WIC, TANF, SNAP, ERDC childcare, Head Start, housing and legal help.",
+    "categories": [
+      "parenting"
+    ],
+    "populations": [
+      "parenting",
+      "unhoused"
+    ],
+    "requires": [
+      "parenting"
+    ],
+    "counties": [
+      "multnomah"
+    ],
+    "age_min": 14,
+    "age_max": 24,
+    "phone": "503-432-3986",
+    "website": "https://newavenues.org/pregnant-and-parenting-support/",
+    "eligibility": "Youth enrolled in the Homeless Youth Continuum (not enrolled: call the Access Center). Referral may involve a waitlist.",
+    "flags": [
+      "youth_only"
+    ]
+  },
+  {
+    "id": "nafy-smyrc",
+    "name": "SMYRC – LGBTQIA2S+ youth center (New Avenues)",
+    "org": "New Avenues for Youth",
+    "description": "A safe, harassment-free space for queer and trans youth ages 13–24 in downtown Portland, connected to Unity House housing and New Avenues services.",
+    "categories": [
+      "lgbtq_support",
+      "mentoring",
+      "mental_health"
+    ],
+    "populations": [
+      "lgbtq",
+      "trans"
+    ],
+    "counties": [
+      "multnomah"
+    ],
+    "age_min": 13,
+    "age_max": 24,
+    "website": "https://newavenues.org/lgbtqia2s-services/",
+    "address": "1220 SW Columbia St, Portland, OR 97201",
+    "phone": "503-224-4339",
+    "eligibility": "LGBTQIA2S+ youth 13–24.",
+    "flags": [
+      "lgbtq_affirming",
+      "youth_only",
+      "walk_in"
+    ]
+  },
+  {
+    "id": "cash-oregon",
+    "name": "CASH Oregon – free tax help",
+    "org": "CASH Oregon",
+    "description": "Free tax preparation (Jan–Apr) so workers can claim refunds and credits like the EITC and Oregon Kids Credit, plus financial coaching.",
+    "categories": [
+      "employment"
+    ],
+    "populations": [
+      "low_income"
+    ],
+    "counties": [
+      "multnomah",
+      "washington",
+      "clackamas"
+    ],
+    "age_min": 16,
+    "age_max": 26,
+    "website": "https://cashoregon.org",
+    "eligibility": "Low- and moderate-income workers.",
+    "flags": []
+  },
+  {
+    "id": "oregon-promise",
+    "name": "Oregon Promise grant",
+    "org": "Oregon Higher Education Coordinating Commission (OSAC)",
+    "description": "Grant toward community college tuition for recent Oregon high school graduates and GED recipients.",
+    "categories": [
+      "education"
+    ],
+    "populations": [
+      "student"
+    ],
+    "counties": [
+      "all"
+    ],
+    "age_min": 16,
+    "age_max": 22,
+    "website": "https://oregonstudentaid.gov/oregon-promise.aspx",
+    "eligibility": "Apply within 6 months of graduating high school or completing the GED; Oregon residency and GPA rules apply.",
+    "flags": [
+      "online"
+    ]
+  },
+  {
+    "id": "summerworks",
+    "name": "SummerWorks & Worksystems youth internships",
+    "org": "Worksystems",
+    "description": "Paid internships and job training for young people 16–24 with Portland-area employers, with a coach.",
+    "categories": [
+      "employment"
+    ],
+    "populations": [
+      "young_adult",
+      "low_income"
+    ],
+    "counties": [
+      "multnomah",
+      "washington"
+    ],
+    "age_min": 16,
+    "age_max": 24,
+    "website": "https://www.worksystems.org",
+    "eligibility": "Ages 16–24; priority for youth facing barriers.",
+    "flags": []
+  },
+  {
+    "id": "head-start",
+    "name": "Head Start, Early Head Start & Preschool for All",
+    "org": "Multnomah County / local Head Start programs",
+    "description": "Free early learning and family support for children under 5. Head Start serves families under the poverty level, families experiencing homelessness and children in foster care. Preschool for All offers free preschool for 3- and 4-year-olds in Multnomah County.",
+    "categories": [
+      "parenting",
+      "education"
+    ],
+    "populations": [
+      "parenting",
+      "low_income"
+    ],
+    "requires": [
+      "parenting"
+    ],
+    "counties": [
+      "multnomah",
+      "washington",
+      "clackamas"
+    ],
+    "age_min": 14,
+    "age_max": 26,
+    "website": "https://www.multco.us/preschool",
+    "eligibility": "Parents of children under 5 (income and situation rules vary).",
+    "flags": []
   }
 ]

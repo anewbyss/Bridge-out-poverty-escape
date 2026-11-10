@@ -5,16 +5,23 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const { createApp } = require('./app');
 const { providersFromEnv } = require('./live');
+const { mailerFromEnv } = require('./mailer');
+const { createVault } = require('./vault');
 
 const PORT = Number(process.env.PORT) || 3000;
 const DB_FILE = process.env.DB_FILE || path.join(__dirname, '..', 'data', 'bridge.db');
+const ADMIN_LOGIN = process.env.ADMIN_EMAIL || 'admin';
 
+// STAFF_PASSWORD is only used to create the first "Main architect" account
+// in an empty database. After that, everyone signs in with their own account.
 let staffPassword = process.env.STAFF_PASSWORD;
+let generated = false;
 if (!staffPassword) {
-  staffPassword = crypto.randomBytes(9).toString('base64url');
-  console.warn(`STAFF_PASSWORD not set — using a temporary password for this run: ${staffPassword}`);
+  staffPassword = crypto.randomBytes(12).toString('base64url');
+  generated = true;
 }
 
+const mailer = mailerFromEnv();
 const app = createApp({
   dbFile: DB_FILE,
   staffPassword,
@@ -24,8 +31,40 @@ const app = createApp({
   liveOptions: {
     radiusMiles: Number(process.env.ACCESS_RADIUS_MILES) || undefined,
   },
+  adminLogin: ADMIN_LOGIN,
+  bootstrapMustChange: generated,
+  mailer,
+  publicUrl: process.env.PUBLIC_URL || null,
+  referralEmail: process.env.REFERRAL_EMAIL || null,
+  emailDetails: process.env.REFERRAL_EMAIL_DETAILS || null,
+  vault: createVault(process.env.DATA_KEY),
+  staffAllowedIps: process.env.STAFF_ALLOWED_IPS ? process.env.STAFF_ALLOWED_IPS.split(',').map((s) => s.trim()).filter(Boolean) : null,
+  trustProxy: process.env.TRUST_PROXY === '1',
 });
+if (!process.env.DATA_KEY) console.warn('DATA_KEY not set: contact details are stored unencrypted. See SECURITY.md.');
+if (process.env.SECURE_COOKIES !== '1') console.warn('SECURE_COOKIES is off: only use this on your own computer, never on the internet without HTTPS.');
 if (app.seeded) console.log(`Loaded ${app.seeded} starter resources into ${DB_FILE}`);
+
+if (app.auth.bootstrapped)
+  console.warn(
+    generated
+      ? `Created the main architect account. First sign-in: ${ADMIN_LOGIN} / ${staffPassword}  (you'll be asked to choose a new password)`
+      : `Created the main architect account "${ADMIN_LOGIN}" with STAFF_PASSWORD.`
+  );
+if (!process.env.SESSION_SECRET) console.warn('SESSION_SECRET not set: staff will be signed out whenever the server restarts.');
+console.log(mailer ? `Refer-me emails: on (${mailer.describe()}) → ${app.settings().referral_email}` : 'Refer-me emails: off (set SMTP_HOST, SMTP_USER, SMTP_PASS). Requests are still saved for staff.');
+
+// Data retention: delete expired records once a day (and at start).
+const purge = () => {
+  try {
+    const r = app.purgeExpired();
+    if (r.clients || r.requests || r.auditEntries) console.log(`Retention (${r.days} days): removed ${r.clients} youth records, ${r.requests} requests, ${r.auditEntries} log entries`);
+  } catch (err) {
+    console.error('Retention purge failed', err);
+  }
+};
+purge();
+setInterval(purge, 24 * 3600 * 1000).unref();
 
 if (app.live.enabled) {
   // Full refresh at start and every LIVE_SYNC_HOURS (default 12).

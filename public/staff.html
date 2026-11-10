@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Staff — Bridge Out of Poverty</title>
-  <meta name="robots" content="noindex">
+  <meta name="robots" content="noindex, nofollow">
   <link rel="stylesheet" href="/styles.css">
   <script src="/common.js" defer></script>
   <script src="/staff.js" defer></script>
@@ -13,8 +13,9 @@
   <header class="topbar">
     <a class="brand" href="/staff">Bridge <span>Out of Poverty</span> · Staff</a>
     <nav>
-      <a href="/?staff=1">New assisted intake</a>
+      <a href="/?staff=1" id="assistedLink" class="hidden">New assisted intake</a>
       <a href="/directory">Public directory</a>
+      <a href="#" id="accountLink" class="hidden">My account</a>
       <a href="#" id="logout" class="hidden">Sign out</a>
     </nav>
   </header>
@@ -22,24 +23,47 @@
   <main class="wide">
     <section id="login" class="card hidden">
       <h1>Staff sign in</h1>
-      <form id="loginForm" class="toolbar">
-        <label class="grow">Password <input type="password" id="password" autocomplete="current-password" required></label>
-        <button class="btn" type="submit">Sign in</button>
+      <form id="loginForm">
+        <div class="row">
+          <label class="label" id="emailRow">Email
+            <input type="text" id="email" autocomplete="username" inputmode="email" spellcheck="false" autocapitalize="off">
+          </label>
+          <label class="label">Password
+            <input type="password" id="password" autocomplete="current-password" required>
+          </label>
+          <label class="label hidden" id="codeRow">6-digit code from your authenticator app
+            <input type="text" id="code" autocomplete="one-time-code" inputmode="numeric" maxlength="6" pattern="[0-9]*">
+          </label>
+        </div>
+        <div class="actions"><span class="small muted">Signing in is logged. Never share your account. Staff will never ask for your password.</span><button class="btn" type="submit">Sign in</button></div>
       </form>
       <div id="loginError"></div>
     </section>
 
+    <section id="setup" class="card hidden"></section>
+
     <section id="app" class="hidden">
+      <p class="small muted" id="whoami"></p>
       <div class="tabs" role="tablist">
-        <button role="tab" data-tab="dashboard" aria-selected="true">Dashboard</button>
-        <button role="tab" data-tab="clients" aria-selected="false">Youth &amp; follow-ups</button>
-        <button role="tab" data-tab="resources" aria-selected="false">Resources</button>
-        <button role="tab" data-tab="discover" aria-selected="false">Discover</button>
+        <button role="tab" data-tab="dashboard" data-perm="dashboard.view" aria-selected="true">Dashboard</button>
+        <button role="tab" data-tab="requests" data-perm="requests.view" aria-selected="false">Refer-me requests</button>
+        <button role="tab" data-tab="clients" data-perm="youth.view" aria-selected="false">Youth &amp; follow-ups</button>
+        <button role="tab" data-tab="resources" data-perm="resources.view" aria-selected="false">Resources</button>
+        <button role="tab" data-tab="discover" data-perm="discovery" aria-selected="false">Discover</button>
+        <button role="tab" data-tab="users" data-perm="users.manage" aria-selected="false">Staff accounts</button>
+        <button role="tab" data-tab="settings" data-perm="settings.edit" aria-selected="false">Settings</button>
+        <button role="tab" data-tab="audit" data-perm="audit.view" aria-selected="false">Audit log</button>
+        <button role="tab" data-tab="account" aria-selected="false">My account</button>
       </div>
       <div id="tab-dashboard" role="tabpanel"></div>
+      <div id="tab-requests" role="tabpanel" class="hidden"></div>
       <div id="tab-clients" role="tabpanel" class="hidden"></div>
       <div id="tab-resources" role="tabpanel" class="hidden"></div>
       <div id="tab-discover" role="tabpanel" class="hidden"></div>
+      <div id="tab-users" role="tabpanel" class="hidden"></div>
+      <div id="tab-settings" role="tabpanel" class="hidden"></div>
+      <div id="tab-audit" role="tabpanel" class="hidden"></div>
+      <div id="tab-account" role="tabpanel" class="hidden"></div>
     </section>
   </main>
 

@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>What Do I Qualify For? — Bridge Out of Poverty</title>
+  <meta name="description" content="See which Portland-area programs and benefits you might qualify for, and where and how to apply. Nothing you enter is saved.">
+  <meta name="robots" content="noindex">
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/common.js" defer></script>
+  <script src="/qualify.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/">Bridge <span>Out of Poverty</span></a>
+    <nav>
+      <a href="/">Find help</a>
+      <a href="/qualify" aria-current="page">What I qualify for</a>
+      <a href="/followup">Check in</a>
+      <a href="/directory">All resources</a>
+    </nav>
+    <button class="quick-exit" type="button" title="Leave this site fast (Shift+Esc)">Quick exit</button>
+  </header>
+  <div class="crisis-strip">In danger right now? Call <a href="tel:911">911</a>. Want to talk to someone? Call or text <a href="tel:988">988</a>, any time.</div>
+
+  <main>
+    <section class="card" id="intro">
+      <h1>What do I qualify for?</h1>
+      <p>Answer a few quick questions to see benefits and programs you might be able to get in the Portland area, including every <strong>New Avenues for Youth</strong> program. For each one, you’ll see where to go, how to apply and what to bring.</p>
+      <p class="notice small"><strong>Nothing you enter here is saved.</strong> Results are a guide, not a promise. Each program makes its own decision. <a href="/disclaimer">Why we can’t guarantee services</a>.</p>
+    </section>
+
+    <form id="screener" class="card" novalidate>
+      <div id="formErrors"></div>
+      <div class="row">
+        <div>
+          <label class="label" for="q-age">Your age</label>
+          <input type="number" id="q-age" name="age" min="5" max="99" inputmode="numeric">
+        </div>
+        <div>
+          <label class="label" for="q-hh">People in your household (including you)</label>
+          <input type="number" id="q-hh" name="household_size" min="1" max="20" inputmode="numeric" value="1">
+        </div>
+        <div>
+          <label class="label" for="q-income">Household income per month, before taxes ($)</label>
+          <input type="text" id="q-income" name="monthly_income" inputmode="decimal" placeholder="e.g. 900 — or leave blank">
+        </div>
+      </div>
+      <p class="hint">Not sure about income? Leave it blank and we’ll show programs as “maybe”. Count your own income if you live on your own, or your family’s if you live with them.</p>
+      <label class="label" for="q-county">Where do you live or stay?</label>
+      <select id="q-county" name="county"></select>
+      <br><br>
+      <fieldset>
+        <legend>Which of these are true for you? (pick any)</legend>
+        <p class="hint">All optional. Sensitive answers help find the right help and are never saved.</p>
+        <div class="chips" id="flags"></div>
+      </fieldset>
+      <div class="actions">
+        <a class="btn secondary" href="/">Search programs by need instead</a>
+        <button class="btn" type="submit" id="go">See what I may qualify for</button>
+      </div>
+    </form>
+
+    <section id="results" class="hidden" aria-live="polite"></section>
+  </main>
+</body>
+</html>

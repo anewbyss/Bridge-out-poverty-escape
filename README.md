@@ -20,8 +20,23 @@ A web app that matches young people **ages 9–26** in the greater Portland area
 - **Refresh my matches:** with the code, a youth can search again against today's directory, optionally changing their needs. Programs they were already sent to keep their existing status and aren't duplicated.
 - Badges on each program: **24/7**, **★ Partner**, **Confidential**, **Culturally specific**, **LGBTQIA2S+ affirming**. The directory has a **Focus** filter for DV, formerly incarcerated, culturally specific, confidential, LGBTQIA2S+ and crisis programs.
 - A Quick Exit button (or Shift+Esc) and a public directory (`/directory`).
+- **What do I qualify for?** (`/qualify`): a short screener covering age, household, income and situations. It shows **likely / maybe** matches with the reason, **where to go, how to apply and what to bring**. It covers SNAP, OHP and OHP Bridge, WIC, TANF, ERDC childcare, Head Start / Preschool for All, LIHEAP and utility discounts, Lifeline, TriMet low-income fare, EITC and free tax help, SSI, rent and eviction help, FYI vouchers, Oregon Promise, Pell, Chafee and foster-youth college money, SummerWorks and Job Corps, and **every New Avenues for Youth program**: Alba 24/7, Drop-In, East Connect, Housing, New Day, ROSE/THORN, Education, PAVE, Avenues to College, Legal Clinic, Family First and SMYRC. **Nothing entered is saved.** Rules live in `server/benefits.js`. Staff update the federal poverty guideline numbers every January on Settings.
+- **Refer me**: a button on every match, directory listing, screener result and check-in. The young person gives a way to reach them (plus optional name, age, best time and "OK to leave a message?") and agrees to share it. The request is **saved for staff** and **emailed to the staff inbox** (default `ripchoom@gmail.com`). By default the email has **no contact details**; staff sign in to see them. Kids under 13 need a trusted adult or staff to send one.
+- **Delete my record**: anyone with a check-in code can erase their own record on the Check in page.
+- **Legal pages**: `/privacy`, `/terms`, `/disclaimer` (no guarantee of housing or services) and `/security` (how we protect data, plus a good-faith vulnerability reporting policy). They are linked in every footer and in the consent boxes. **Fill in the `[Organization legal name]` / address placeholders and have a lawyer review them before launch.**
 
-**For staff** (`/staff`, password protected)
+**Staff accounts & roles** (`/staff`). Everyone signs in with their own email and password. Roles are defined in `server/roles.js`:
+
+| Role | Can do |
+|---|---|
+| **Main architect** | Everything, including other architects, security settings and requiring two-step sign-in for all |
+| **Maintenance** | Manage staff accounts (not architects), settings, data retention, poverty-guideline numbers, bulk directory tools, audit log |
+| **Case worker** | Youth records, follow-ups, Refer-me requests, the full directory, discovery, exports |
+| **Program staff** | **Only their own program(s)**: edit and verify their listing, see Refer-me requests sent to it. No youth records, dashboard or exports. Use this for each New Avenues for Youth program lead. |
+
+New accounts get a one-time temporary password and must choose their own at first sign-in. Architect and Maintenance accounts must set up two-step sign-in (any authenticator app). Every sign-in, record view, export and change goes to the **Audit log**. See **SECURITY.md**.
+
+**For staff** (`/staff`)
 - **Dashboard**:
   - needs, unmet needs (gaps), barriers and outcomes
   - success rate and top barriers broken down by age, LGBTQIA2S+, race, housing, foster experience and county, so staff can see who is being served worse
@@ -50,18 +65,38 @@ A web app that matches young people **ages 9–26** in the greater Portland area
 Requires Node.js 22.13 or newer. There are no npm dependencies; it uses the built-in `node:sqlite`.
 
 ```bash
-STAFF_PASSWORD='choose-a-strong-password' npm start
+npm start
+# First run prints a one-time sign-in for the main architect account ("admin").
 # open http://localhost:3000   (staff: http://localhost:3000/staff)
 npm test
 ```
 
+For a real deployment, copy `.env.example` to `.env`, fill it in, and run `npm run start:env`. **Read SECURITY.md first.**
+
 | Variable | Default | Purpose |
 |---|---|---|
 | `PORT` | `3000` | HTTP port |
-| `STAFF_PASSWORD` | random, printed at startup | Staff sign-in |
+| `ADMIN_EMAIL` | `admin` | Sign-in for the first main-architect account (created only in an empty database) |
+| `STAFF_PASSWORD` | random, printed once | Password for that first account. If random, it must be changed at first sign-in |
 | `SESSION_SECRET` | random per start | Signs staff session cookies. Set it so sign-ins survive restarts |
+| `DATA_KEY` | none | 64 hex characters. Encrypts contact details, names and notes in the database. Keep it apart from the database and its backups |
 | `DB_FILE` | `data/bridge.db` | SQLite database file |
-| `SECURE_COOKIES` | off | Set to `1` when served over HTTPS |
+| `SECURE_COOKIES` | off | Set to `1` when served over HTTPS (adds `Secure`, `__Host-` cookie and HSTS) |
+| `TRUST_PROXY` | off | Set to `1` behind a reverse proxy so rate limits see real client addresses |
+| `STAFF_ALLOWED_IPS` | anyone | Comma-separated IPs (or prefixes like `10.20.`) allowed to reach the staff API |
+| `PUBLIC_URL` | none | e.g. `https://bridge.example.org`, used for the link in Refer-me emails |
+
+### Refer-me emails
+
+Requests are always saved in the app (Staff → **Refer-me requests**). To also email them:
+
+1. Sign in to the staff Gmail (`ripchoom@gmail.com`) and turn on **2-Step Verification**.
+2. Google Account → Security → **App passwords** → create one called "Bridge".
+3. Set `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=465`, `SMTP_USER=ripchoom@gmail.com`, `SMTP_PASS=<the app password>`.
+4. Optional: `REFERRAL_EMAIL` sends requests to another inbox (architects can also change it on Settings). `REFERRAL_EMAIL_DETAILS=full` puts contact details in the email; **not recommended**, because email isn't private.
+5. Staff → Settings → **Send test email**.
+
+If email is off or fails, the young person is offered a `mailto:` link to email staff from their own email app.
 
 ## iPhone app (Home Screen, works offline)
 
@@ -139,15 +174,19 @@ The starter list includes:
 ## Privacy & safety notes
 
 - No names are collected. Contact info is stored only if the youth chooses to give it.
-- Data on minors is sensitive. Run the app over HTTPS, limit who has the staff password, back up and protect the database file, and set a retention policy. Before collecting real data, check consent and reporting rules with your agency, especially for youth under 18.
+- Data on minors is sensitive. Run the app over HTTPS, give each person their own account with the smallest role, set `DATA_KEY`, encrypt backups, and set the retention period (Settings; default 3 years, deleted automatically every day). Before collecting real data, check consent and reporting rules with your agency, especially for youth under 18. See **SECURITY.md**.
+- Legal pages cover the Oregon Consumer Privacy Act, Washington's My Health My Data Act (Clark County users), children under 13, mandatory reporting (ORS 419B.005), breach notice (ORS 646A.604) and computer-crime law. They are drafts: have them reviewed before launch.
+- **New Avenues for Youth details** (addresses, phones, hours, ages) were taken from newavenues.org on Nov 10, 2026. A few conflicts on their site are noted in the listings (for example, two Education phone numbers). Have each program lead verify their listing, ideally through a Program staff account.
 - Security headers include a strict Content-Security-Policy (no inline scripts). The app also requires JSON for write requests, uses SameSite/HttpOnly cookies, locks staff login after repeated failures, and uses parameterized SQL everywhere.
 
 ## Layout
 
 ```
 server/  index.js (entry) · app.js (routes) · matcher.js · store.js (DB ops + reports) · live.js (live lookup) · discovery.js (public records)
-         db.js (schema, seed) · taxonomy.js (all answer options) · validate.js · auth.js
-public/  index.html + intake.js · followup · directory · staff · common.js · styles.css
+         db.js (schema, seed, settings, audit) · taxonomy.js (all answer options) · validate.js
+         auth.js (accounts, 2FA, sessions) · roles.js (permissions) · benefits.js (screener rules) · requests.js (Refer me)
+         mailer.js (SMTP) · vault.js (field encryption)
+public/  index.html + intake.js · qualify · followup · directory · staff · privacy · terms · disclaimer · security · common.js · styles.css
 data/    resources.seed.json
 test/    matcher + API tests (node:test)
 ```

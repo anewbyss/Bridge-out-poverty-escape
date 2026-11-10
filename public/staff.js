@@ -8,45 +8,411 @@
   const SMALL_CELL = 5;
 
   // ---------- Auth ----------
+  let me = null;
+  let meta = { multiUser: true, roles: [] };
+  const can = (p) => !!me?.permissions?.includes(p);
+  const roleLabel = (id) => meta.roles.find((r) => r.id === id)?.label || id;
+
   async function boot() {
-    const { staff } = await api('/api/staff/me');
-    $('login').classList.toggle('hidden', staff);
-    $('app').classList.toggle('hidden', !staff);
-    $('logout').classList.toggle('hidden', !staff);
-    if (staff) showTab('dashboard');
-    else $('password').focus();
+    const m = await api('/api/staff/me');
+    me = m.user;
+    meta = m;
+    const signedIn = !!m.staff;
+    $('emailRow').classList.toggle('hidden', !m.multiUser);
+    $('login').classList.toggle('hidden', signedIn);
+    $('logout').classList.toggle('hidden', !signedIn);
+    $('accountLink').classList.toggle('hidden', !signedIn || !m.multiUser);
+    const pending = signedIn && (me.must_change_password || me.needs_2fa_setup);
+    $('assistedLink').classList.toggle('hidden', !signedIn || pending || !can('youth.view'));
+    if (!signedIn) {
+      $('app').classList.add('hidden');
+      $('setup').classList.add('hidden');
+      ($('emailRow').classList.contains('hidden') ? $('password') : $('email')).focus();
+      return;
+    }
+    // Required first steps: new password, then two-step sign-in.
+    if (me.must_change_password || me.needs_2fa_setup) {
+      $('app').classList.add('hidden');
+      $('setup').classList.remove('hidden');
+      return me.must_change_password ? renderPasswordSetup($('setup'), true) : render2faSetup($('setup'), true);
+    }
+    $('setup').classList.add('hidden');
+    $('app').classList.remove('hidden');
+    $('whoami').textContent = m.multiUser ? `Signed in as ${me.name} (${me.email}) · ${roleLabel(me.role)}` : '';
+    for (const b of document.querySelectorAll('[data-tab]')) {
+      const ok = b.dataset.tab === 'account' ? m.multiUser : can(b.dataset.perm);
+      b.classList.toggle('hidden', !ok);
+      if (b.dataset.tab === 'requests') b.textContent = m.openRequests ? `Refer-me requests (${m.openRequests} new)` : 'Refer-me requests';
+    }
+    const wanted = location.hash.slice(1);
+    const first = [wanted, 'dashboard', 'requests', 'resources'].find((t) => t && loaders[t] && !document.querySelector(`[data-tab="${t}"]`).classList.contains('hidden'));
+    showTab(first || 'account');
   }
 
   $('loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     mount($('loginError'));
     try {
-      await api('/api/staff/login', { method: 'POST', body: { password: $('password').value } });
+      await api('/api/staff/login', {
+        method: 'POST',
+        body: { email: $('email').value.trim() || undefined, password: $('password').value, code: $('code').value.trim() || undefined },
+      });
       $('password').value = '';
+      $('code').value = '';
+      $('codeRow').classList.add('hidden');
       boot();
     } catch (err) {
+      if (err.status === 401 && /code/i.test(err.message)) {
+        $('codeRow').classList.remove('hidden');
+        $('code').focus();
+      }
       mount($('loginError'), errorBox(err));
     }
   });
 
-  $('logout').addEventListener('click', async (e) => {
-    e.preventDefault();
-    await api('/api/staff/logout', { method: 'POST', body: {} });
+  const signOut = async (e) => {
+    e?.preventDefault();
+    await api('/api/staff/logout', { method: 'POST', body: {} }).catch(() => {});
+    me = null;
     boot();
-  });
+  };
+  $('logout').addEventListener('click', signOut);
+  $('accountLink').addEventListener('click', (e) => (e.preventDefault(), showTab('account')));
 
   // ---------- Tabs ----------
-  const loaders = { dashboard: loadDashboard, clients: loadClients, resources: loadResources, discover: loadDiscover };
+  const loaders = {
+    dashboard: loadDashboard, requests: loadRequests, clients: loadClients, resources: loadResources, discover: loadDiscover,
+    users: loadUsers, settings: loadSettings, audit: loadAudit, account: loadAccount,
+  };
   function showTab(name) {
     for (const b of document.querySelectorAll('[data-tab]')) b.setAttribute('aria-selected', String(b.dataset.tab === name));
     for (const k of Object.keys(loaders)) $(`tab-${k}`).classList.toggle('hidden', k !== name);
+    if (location.hash !== `#${name}`) history.replaceState(null, '', `#${name}`);
     loaders[name]().catch(handleError);
   }
   for (const b of document.querySelectorAll('[data-tab]')) b.addEventListener('click', () => showTab(b.dataset.tab));
 
   function handleError(err) {
-    if (err.status === 401) return boot();
+    if (err.status === 401 || err.status === 403 && /first/.test(err.message)) return boot();
     alert(err.message);
+  }
+
+  // ---------- Own account: password & two-step sign-in ----------
+  function renderPasswordSetup(box, required = false) {
+    const cur = el('input', { type: 'password', autocomplete: 'current-password' });
+    const next = el('input', { type: 'password', autocomplete: 'new-password', minlength: 12 });
+    const again = el('input', { type: 'password', autocomplete: 'new-password' });
+    const msg = el('div', { 'aria-live': 'polite' });
+    mount(box,
+      el('h2', {}, required ? 'Choose your own password' : 'Change password'),
+      required ? el('p', {}, 'You signed in with a temporary password. Choose a new one only you know.') : null,
+      el('p', { class: 'hint' }, 'At least 12 characters. A phrase of 4+ random words is strong and easy to remember (e.g. “violet tractor ocean lamp”). Don’t reuse a password from another site.'),
+      el('div', { class: 'row' },
+        el('label', { class: 'label' }, required ? 'Temporary password' : 'Current password', cur),
+        el('label', { class: 'label' }, 'New password', next),
+        el('label', { class: 'label' }, 'New password again', again)),
+      msg,
+      el('div', { class: 'actions' }, required ? el('button', { class: 'btn secondary', type: 'button', onclick: signOut }, 'Sign out') : el('span'),
+        el('button', {
+          class: 'btn', type: 'button',
+          onclick: async () => {
+            if (next.value !== again.value) return mount(msg, el('div', { class: 'errors' }, 'The new passwords don’t match.'));
+            try {
+              await api('/api/staff/account/password', { method: 'POST', body: { current: cur.value, next: next.value } });
+              mount(msg, el('p', { class: 'success' }, 'Password changed. Other sessions were signed out.'));
+              if (required) boot();
+            } catch (err) {
+              mount(msg, errorBox(err));
+            }
+          },
+        }, 'Save password')));
+  }
+
+  async function render2faSetup(box, required = false) {
+    const { secret, otpauth } = await api('/api/staff/account/2fa/begin', { method: 'POST', body: {} });
+    const code = el('input', { type: 'text', inputmode: 'numeric', maxlength: 6, autocomplete: 'one-time-code' });
+    const msg = el('div', { 'aria-live': 'polite' });
+    mount(box,
+      el('h2', {}, 'Set up two-step sign-in'),
+      required ? el('p', { class: 'notice' }, 'Your role can see sensitive information, so two-step sign-in is required. It stops someone who learns your password from getting in.') : null,
+      el('ol', {},
+        el('li', {}, 'Install an authenticator app on your phone (Google Authenticator, Microsoft Authenticator, 1Password, Authy…).'),
+        el('li', {}, 'In the app, choose “Add account” → “Enter a setup key”, and type this key (time-based):', el('br'), el('span', { class: 'secret' }, secret.replace(/(.{4})/g, '$1 ').trim())),
+        el('li', {}, 'Type the 6-digit code the app shows:')),
+      el('details', {}, el('summary', { class: 'small' }, 'Using a password manager on this computer? Copy the setup link'), el('code', { class: 'small' }, otpauth)),
+      el('div', { class: 'toolbar' }, el('label', {}, '6-digit code', code)),
+      msg,
+      el('div', { class: 'actions' }, required ? el('button', { class: 'btn secondary', type: 'button', onclick: signOut }, 'Sign out') : el('span'),
+        el('button', {
+          class: 'btn', type: 'button',
+          onclick: async () => {
+            try {
+              await api('/api/staff/account/2fa/enable', { method: 'POST', body: { code: code.value.trim() } });
+              mount(msg, el('p', { class: 'success' }, 'Two-step sign-in is on.'));
+              boot();
+            } catch (err) {
+              mount(msg, errorBox(err));
+            }
+          },
+        }, 'Turn on')));
+    code.focus();
+  }
+
+  async function loadAccount() {
+    const box = $('tab-account');
+    const pw = el('section', { class: 'card' });
+    renderPasswordSetup(pw);
+    const tfa = el('section', { class: 'card' });
+    if (me.totp_enabled) {
+      const p = el('input', { type: 'password', autocomplete: 'current-password' });
+      const msg = el('div');
+      mount(tfa, el('h2', {}, 'Two-step sign-in'), el('p', { class: 'success' }, '✓ On'),
+        ['architect', 'maintainer'].includes(me.role)
+          ? el('p', { class: 'hint' }, 'Required for your role. Got a new phone? Ask another main architect or maintainer to reset it, then set it up again.')
+          : el('div', {}, el('div', { class: 'toolbar' }, el('label', {}, 'Password to turn off', p),
+              el('button', { class: 'btn secondary small', type: 'button', onclick: async () => {
+                try {
+                  await api('/api/staff/account/2fa/disable', { method: 'POST', body: { password: p.value } });
+                  boot();
+                } catch (err) {
+                  mount(msg, errorBox(err));
+                }
+              } }, 'Turn off')), msg));
+    } else {
+      mount(tfa, el('h2', {}, 'Two-step sign-in'), el('p', {}, 'Off. Turn it on to protect your account.'),
+        el('button', { class: 'btn', type: 'button', onclick: () => render2faSetup(tfa).catch(handleError) }, 'Set up'));
+    }
+    mount(box,
+      el('section', { class: 'card' }, el('h2', {}, me.name), el('p', {}, me.email, ' · ', roleLabel(me.role)),
+        me.programs?.length ? el('p', { class: 'small muted' }, `Your programs: ${me.programs.join(', ')}`) : null,
+        el('button', { class: 'btn secondary small', type: 'button', onclick: async () => {
+          if (!confirm('Sign out on every device, including this one?')) return;
+          await api('/api/staff/account/logout-all', { method: 'POST', body: {} });
+          boot();
+        } }, 'Sign out everywhere')),
+      pw, tfa);
+  }
+
+  // ---------- Refer-me requests ----------
+  let reqStatus = 'open';
+  async function loadRequests() {
+    const { requests, statuses } = await api(`/api/staff/requests?status=${reqStatus}`);
+    const sLabel = Object.fromEntries(statuses.map((s) => [s.id, s.label]));
+    const filter = (id, label) => el('button', { class: `btn small ${reqStatus === id ? '' : 'secondary'}`, type: 'button', onclick: () => ((reqStatus = id), loadRequests().catch(handleError)) }, label);
+    const card = (q) => {
+      const status = el('select', {}, statuses.map((s) => el('option', { value: s.id, selected: q.status === s.id }, s.label)));
+      const note = el('textarea', { maxlength: 2000, placeholder: 'What you did (only staff see this)' }, q.staff_note || '');
+      const msg = el('span', { 'aria-live': 'polite' });
+      return el('article', { class: 'card' },
+        el('div', { class: 'actions' },
+          el('h3', {}, `#${q.id} · ${q.program || 'General help'}`),
+          el('span', { class: q.status === 'new' ? 'badge warn' : 'badge' }, sLabel[q.status] || q.status)),
+        el('p', { class: 'small muted' }, `Received ${fmtDate(q.created_at)} ${String(q.created_at).slice(11, 16)} UTC`,
+          q.need ? ` · ${T.label.NEEDS[q.need] || q.need}` : '', q.county ? ` · ${T.label.COUNTIES[q.county]?.split(' (')[0] || q.county}` : '',
+          q.emailed ? ' · emailed' : q.email_error ? ' · email failed' : ''),
+        el('table', {}, el('tbody', {},
+          [['Name', q.first_name || '—'], ['Age', q.age ?? '—'],
+            ['Reach by', `${q.contact_method}: ${q.contact_value}`],
+            ['Leave a message?', q.safe_to_message ? 'Yes' : 'NO — don’t leave messages'],
+            ['Best time', q.best_time || '—'], ['Their note', q.note || '—'],
+            ['Check-in code', q.ref_code || '—'], ['Helper', q.adult_helper ? 'Trusted adult / staff helped send' : '—'],
+            ['Handled by', q.handled_by ? `${q.handled_by} · ${fmtDate(q.handled_at)}` : '—']]
+            .map(([k, v]) => el('tr', {}, el('th', {}, k), el('td', {}, String(v)))))),
+        q.contact_method !== 'email' && q.contact_value
+          ? el('p', {}, el('a', { href: telHref(q.contact_value) }, `📞 ${q.contact_method === 'text' ? 'Open phone to text/call' : 'Call'} ${q.contact_value}`))
+          : el('p', {}, el('a', { href: `mailto:${q.contact_value}` }, `✉️ Email ${q.contact_value}`)),
+        el('div', { class: 'toolbar' }, el('label', {}, 'Status', status), el('label', { class: 'grow' }, 'Staff note', note)),
+        el('div', { class: 'actions' },
+          el('button', { class: 'btn danger small', type: 'button', onclick: async () => {
+            if (!confirm(`Permanently delete request #${q.id}?`)) return;
+            await api(`/api/staff/requests/${q.id}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } }).catch(handleError);
+            loadRequests().catch(handleError);
+          } }, 'Delete'),
+          el('span', {}, msg, ' ', el('button', { class: 'btn small', type: 'button', onclick: async () => {
+            try {
+              await api(`/api/staff/requests/${q.id}`, { method: 'POST', body: { status: status.value, staff_note: note.value } });
+              mount(msg, el('span', { class: 'success' }, 'Saved'));
+            } catch (err) {
+              mount(msg, errorBox(err));
+            }
+          } }, 'Save'))));
+    };
+    mount($('tab-requests'),
+      el('div', { class: 'card toolbar' }, filter('open', 'Open'), filter('new', 'New'), filter('all', 'All'),
+        el('span', { class: 'small muted grow' }, can('requests.all') ? 'Young people asking staff to help them connect.' : 'Requests sent to your program(s).')),
+      el('p', { class: 'notice small' }, 'Confidential. Contact young people only the way they asked. If they said not to leave messages, don’t. Never forward these details to personal email or text.'),
+      requests.length ? requests.map(card) : el('p', { class: 'muted' }, 'No requests here.'));
+  }
+
+  // ---------- Staff accounts ----------
+  async function loadUsers() {
+    const [users, resources] = await Promise.all([api('/api/staff/users'), api('/api/staff/resources')]);
+    const progName = Object.fromEntries(resources.map((r) => [r.id, r.name]));
+    const assignable = meta.roles.filter((r) => me.role === 'architect' || r.id !== 'architect');
+    const showTemp = (title, temp) =>
+      openDialog(el('h2', {}, title),
+        el('p', {}, 'Give this temporary password to the person in person or by phone. Don’t email or text it with their email address. It’s shown only once. They must change it at first sign-in.'),
+        el('p', {}, el('span', { class: 'secret' }, temp)),
+        el('p', { class: 'small muted' }, 'Admin roles will also be asked to set up two-step sign-in.'));
+
+    const programPicker = (selected = []) => {
+      const sel = el('select', { multiple: true, size: 8 },
+        resources.slice().sort((a, b) => a.name.localeCompare(b.name)).map((r) => el('option', { value: r.id, selected: selected.includes(r.id) }, r.name)));
+      return sel;
+    };
+
+    function userForm(u) {
+      const name = el('input', { type: 'text', value: u?.name || '', maxlength: 100 });
+      const email = el('input', { type: 'email', value: u?.email || '', disabled: !!u });
+      const role = el('select', {}, assignable.map((r) => el('option', { value: r.id, selected: (u?.role || 'case_worker') === r.id }, `${r.label} — ${r.description}`)));
+      const progs = programPicker(u?.programs || []);
+      const progRow = el('label', { class: 'label' }, 'Programs this person manages (Ctrl/⌘-click for several)', progs);
+      const sync = () => progRow.classList.toggle('hidden', role.value !== 'program_partner');
+      role.addEventListener('change', sync);
+      sync();
+      const active = el('input', { type: 'checkbox', checked: u ? u.active : true });
+      const errs = el('div');
+      openDialog(
+        el('h2', {}, u ? `Edit ${u.name}` : 'Add a staff account'), errs,
+        el('div', { class: 'row' }, el('label', { class: 'label' }, 'Name', name), el('label', { class: 'label' }, 'Work email (their sign-in)', email)),
+        el('label', { class: 'label' }, 'Role', role), progRow,
+        u ? el('label', { class: 'chip' }, active, 'Account active (unchecking signs them out everywhere)') : null,
+        el('div', { class: 'actions' }, el('span'), el('button', { class: 'btn', type: 'button', onclick: async () => {
+          const body = { name: name.value, role: role.value, programs: role.value === 'program_partner' ? [...progs.selectedOptions].map((o) => o.value) : [] };
+          try {
+            if (u) {
+              await api(`/api/staff/users/${u.id}`, { method: 'POST', body: { ...body, active: active.checked } });
+              dialog.close();
+            } else {
+              const r = await api('/api/staff/users', { method: 'POST', body: { ...body, email: email.value } });
+              showTemp(`Account created for ${r.user.name}`, r.tempPassword);
+            }
+            loadUsers().catch(handleError);
+          } catch (err) {
+            mount(errs, errorBox(err));
+          }
+        } }, u ? 'Save' : 'Create account')));
+    }
+
+    mount($('tab-users'),
+      el('div', { class: 'card toolbar' },
+        el('div', { class: 'grow' }, el('h3', {}, 'Staff accounts'),
+          el('p', { class: 'hint' }, 'Everyone gets their own account. Give the smallest role that lets them do their job. Program staff (for example, a New Avenues program lead) can update only their own program’s listing and see Refer-me requests sent to it.')),
+        el('button', { class: 'btn', type: 'button', onclick: () => userForm(null) }, 'Add account')),
+      el('div', { class: 'card table-wrap' },
+        el('table', {},
+          el('thead', {}, el('tr', {}, ['Name', 'Email', 'Role', 'Programs', '2-step', 'Last sign-in', 'Status', ''].map((h) => el('th', {}, h)))),
+          el('tbody', {},
+            users.map((u) =>
+              el('tr', {},
+                el('td', {}, u.name, u.id === me.id ? el('span', { class: 'role-tag' }, ' (you)') : null),
+                el('td', { class: 'small' }, u.email),
+                el('td', {}, roleLabel(u.role)),
+                el('td', { class: 'small' }, u.programs.map((p) => progName[p] || p).join(', ') || '—'),
+                el('td', {}, u.totp_enabled ? '✓' : el('span', { class: 'badge warn' }, 'off')),
+                el('td', { class: 'small' }, u.last_login_at ? fmtDate(u.last_login_at) : 'Never'),
+                el('td', {}, u.active ? (u.must_change_password ? el('span', { class: 'badge warn' }, 'temp password') : 'Active') : el('span', { class: 'badge warn' }, 'Disabled')),
+                el('td', {}, (me.role === 'architect' || u.role !== 'architect') && u.id !== me.id
+                  ? el('div', { class: 'chips' },
+                      el('button', { class: 'btn secondary small', type: 'button', onclick: () => userForm(u) }, 'Edit'),
+                      el('button', { class: 'btn secondary small', type: 'button', onclick: async () => {
+                        if (!confirm(`Reset ${u.name}'s password? They’ll be signed out and need the new temporary password. Confirm who you’re talking to first — never reset because of an email or text alone.`)) return;
+                        try {
+                          const r = await api(`/api/staff/users/${u.id}/reset-password`, { method: 'POST', body: {} });
+                          showTemp(`New temporary password for ${u.name}`, r.tempPassword);
+                          loadUsers().catch(handleError);
+                        } catch (err) {
+                          handleError(err);
+                        }
+                      } }, 'Reset password'),
+                      u.totp_enabled ? el('button', { class: 'btn secondary small', type: 'button', onclick: async () => {
+                        if (!confirm(`Turn off two-step sign-in for ${u.name} (lost phone)? They’ll set it up again at next sign-in.`)) return;
+                        await api(`/api/staff/users/${u.id}/reset-2fa`, { method: 'POST', body: {} }).catch(handleError);
+                        loadUsers().catch(handleError);
+                      } }, 'Reset 2-step') : null)
+                  : null)))))));
+  }
+
+  // ---------- Settings ----------
+  async function loadSettings() {
+    const s = await api('/api/staff/settings');
+    const email = el('input', { type: 'email', value: s.referral_email });
+    const details = el('select', {},
+      el('option', { value: 'minimal', selected: s.email_details === 'minimal' }, 'Minimal (recommended): program and request number only — details stay in the app'),
+      el('option', { value: 'full', selected: s.email_details === 'full' }, 'Full: include the young person’s contact details in the email'));
+    const retention = el('input', { type: 'number', min: 30, max: 3650, value: s.retention_days });
+    const req2fa = el('input', { type: 'checkbox', checked: !!s.require_2fa, disabled: me.role !== 'architect' });
+    const year = el('input', { type: 'number', value: s.fpl.year });
+    const base = el('input', { type: 'number', value: s.fpl.base });
+    const per = el('input', { type: 'number', value: s.fpl.perPerson });
+    const org = el('input', { type: 'text', value: s.org_name || '', placeholder: 'Organization legal name' });
+    const msg = el('div', { 'aria-live': 'polite' });
+    const save = async (body, label) => {
+      try {
+        await api('/api/staff/settings', { method: 'POST', body });
+        mount(msg, el('p', { class: 'success' }, `${label} saved.`));
+      } catch (err) {
+        mount(msg, errorBox(err));
+      }
+    };
+    mount($('tab-settings'),
+      msg,
+      el('section', { class: 'card' }, el('h3', {}, 'Refer-me emails'),
+        el('p', { class: 'hint' }, s.emailEnabled ? `Email is on (${s.emailFrom}).` : 'Email is OFF on this server. Requests are still saved here. To turn email on, see README → Refer-me emails.'),
+        el('div', { class: 'row' }, el('label', { class: 'label' }, 'Send requests to', email), el('label', { class: 'label' }, 'What the email contains', details)),
+        el('p', { class: 'hint' }, 'Email isn’t private: inboxes get forwarded, shared and hacked. Keep “Minimal” unless you have a strong reason, and protect this inbox with two-step sign-in.'),
+        el('div', { class: 'actions' },
+          el('button', { class: 'btn secondary', type: 'button', disabled: !s.emailEnabled, onclick: async () => {
+            try {
+              await api('/api/staff/settings/test-email', { method: 'POST', body: {} });
+              mount(msg, el('p', { class: 'success' }, 'Test email sent.'));
+            } catch (err) {
+              mount(msg, errorBox(err));
+            }
+          } }, 'Send test email'),
+          el('button', { class: 'btn', type: 'button', onclick: () => save({ referral_email: email.value, email_details: details.value }, 'Email settings') }, 'Save'))),
+      el('section', { class: 'card' }, el('h3', {}, 'Security'),
+        el('label', { class: 'chip' }, req2fa, 'Require two-step sign-in for every staff account (architect only). Admin roles always need it.'),
+        el('div', { class: 'actions' }, el('span'), el('button', { class: 'btn', type: 'button', disabled: me.role !== 'architect', onclick: () => save({ require_2fa: req2fa.checked }, 'Security setting') }, 'Save'))),
+      el('section', { class: 'card' }, el('h3', {}, 'Data retention'),
+        el('p', { class: 'hint' }, 'Youth records and Refer-me requests older than this are deleted automatically every day. Keep only as long as you need (and as long as funders require).'),
+        el('div', { class: 'toolbar' }, el('label', {}, 'Keep for (days)', retention)),
+        el('div', { class: 'actions' },
+          el('button', { class: 'btn secondary', type: 'button', onclick: async () => {
+            if (!confirm('Delete everything older than the retention period now?')) return;
+            try {
+              const r = await api('/api/staff/retention/run', { method: 'POST', body: {} });
+              mount(msg, el('p', { class: 'success' }, `Removed ${r.clients} youth records, ${r.requests} requests, ${r.auditEntries} old log entries.`));
+            } catch (err) {
+              mount(msg, errorBox(err));
+            }
+          } }, 'Run cleanup now'),
+          el('button', { class: 'btn', type: 'button', onclick: () => save({ retention_days: Number(retention.value) }, 'Retention') }, 'Save'))),
+      el('section', { class: 'card' }, el('h3', {}, 'Income limits for “What do I qualify for?”'),
+        el('p', { class: 'hint' }, 'Update every January when HHS publishes new federal poverty guidelines (aspe.hhs.gov/poverty-guidelines). Use the 48-state yearly amounts.'),
+        el('div', { class: 'row' }, el('label', { class: 'label' }, 'Year', year), el('label', { class: 'label' }, '1 person ($/year)', base), el('label', { class: 'label' }, 'Each extra person ($/year)', per)),
+        el('div', { class: 'actions' }, el('span'), el('button', { class: 'btn', type: 'button', onclick: () => save({ fpl: { year: Number(year.value), base: Number(base.value), perPerson: Number(per.value) } }, 'Poverty guidelines') }, 'Save'))),
+      el('section', { class: 'card' }, el('h3', {}, 'Organization'),
+        el('div', { class: 'toolbar' }, el('label', { class: 'grow' }, 'Legal name (shown in the app)', org)),
+        el('div', { class: 'actions' }, el('span'), el('button', { class: 'btn', type: 'button', onclick: () => save({ org_name: org.value }, 'Organization') }, 'Save'))));
+  }
+
+  // ---------- Audit log ----------
+  async function loadAudit() {
+    const rows = await api('/api/staff/audit?limit=500');
+    const alerts = rows.filter((r) => r.action.startsWith('security.') || r.action === 'login.locked');
+    mount($('tab-audit'),
+      el('section', { class: 'card' }, el('h3', {}, 'Audit log'),
+        el('p', { class: 'hint' }, 'Every sign-in, account change, youth record opened, export and setting change. Review it weekly. Look for sign-ins at odd hours, many failed sign-ins, or records opened without a reason.'),
+        alerts.length ? el('p', { class: 'notice' }, `${alerts.length} security alert${alerts.length === 1 ? '' : 's'} in the latest entries (lockouts, code guessing, blocked addresses).`) : null),
+      el('div', { class: 'card table-wrap' },
+        el('table', { class: 'audit' },
+          el('thead', {}, el('tr', {}, ['When (UTC)', 'Who', 'Action', 'Target', 'Detail'].map((h) => el('th', {}, h)))),
+          el('tbody', {}, rows.map((r) =>
+            el('tr', {},
+              el('td', {}, r.at), el('td', {}, r.user_name || '—'),
+              el('td', {}, r.action.startsWith('security.') || r.action === 'login.locked' ? el('span', { class: 'badge warn' }, r.action) : r.action),
+              el('td', {}, r.target || ''), el('td', {}, r.detail || '')))))));
   }
 
   function openDialog(...children) {
@@ -255,7 +621,7 @@
             onSaved();
           },
         }, 'Undo'));
-    const who = el('input', { type: 'text', placeholder: 'Your initials', maxlength: 100 });
+    const who = el('input', { type: 'text', placeholder: 'Your initials', maxlength: 100, value: meta.multiUser ? me.name : '' });
     const note = el('input', { type: 'text', placeholder: 'How you confirmed (e.g. called intake)', maxlength: 1000 });
     const msg = el('span');
     return el('div', { class: 'toolbar validate' },
@@ -351,7 +717,7 @@
         el('td', {},
           el('div', { class: 'chips' },
             el('button', { class: 'btn secondary small', type: 'button', onclick: () => editResource(r) }, 'Edit'),
-            el('button', {
+            !can('resources.edit_all') ? null : el('button', {
               class: 'btn secondary small', type: 'button', title: 'Partner programs are favored in matching',
               onclick: async () => {
                 try {
@@ -365,8 +731,9 @@
             el('button', {
               class: 'btn small', type: 'button',
               onclick: async () => {
-                const who = prompt('Your name or initials (for the record):', '');
+                const who = meta.multiUser ? me.name : prompt('Your name or initials (for the record):', '');
                 if (who === null) return;
+                if (meta.multiUser && !confirm(`Confirm you checked ${r.name}’s details (phone, hours, who qualifies) with the program today?`)) return;
                 try {
                   await api(`/api/staff/resources/${encodeURIComponent(r.id)}/verify`, { method: 'POST', body: { verified_by: who } });
                   loadResources();
@@ -467,9 +834,19 @@
     });
     const staleCount = all.filter((r) => r.active && isStale(r)).length;
     const brokenCount = all.filter((r) => r.active && r.link_status && r.link_status !== 'ok').length;
+    if (!can('resources.edit_all')) {
+      // Program staff: just their own listings.
+      return mount($('tab-resources'),
+        el('section', { class: 'card' }, el('h3', {}, 'Your program listings'),
+          el('p', { class: 'hint' }, 'Keep these accurate: young people see them in their matches and in the public directory. After you update or confirm the details, click “Verified”. Ask a case worker to add a new program.')),
+        el('div', { class: 'card table-wrap' },
+          el('table', {},
+            el('thead', {}, el('tr', {}, ['Program', 'Helps with', 'Area', 'Ages', 'Verified', 'Website', 'Suggested → got help', ''].map((h) => el('th', {}, h)))),
+            tbody)));
+    }
     mount($('tab-resources'),
       livePanel(),
-      el('section', { class: 'card' },
+      !can('resources.bulk') ? null : el('section', { class: 'card' },
         el('h3', {}, 'Keep the directory fresh'),
         el('p', { class: 'hint' }, 'Refresh adds programs from the built-in starter list that you don’t have yet. Import adds programs from a JSON file (same format as “Export resources”). Programs you have edited or verified are never overwritten.'),
         el('div', { class: 'toolbar' },

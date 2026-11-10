@@ -45,7 +45,10 @@
             `Ages ${r.age_min}–${r.age_max} · `,
             r.counties.includes('all') ? 'Anywhere' : r.counties.map((c) => T.label.COUNTIES[c]?.split(' (')[0] || c).join(', ')),
           el('div', { class: 'chips' }, r.categories.map((c) => el('span', { class: 'badge' }, T.label.NEEDS[c] || c))),
-          el('p', { class: 'small muted' }, r.last_verified ? `Verified ${fmtDate(r.last_verified)}` : 'Not yet verified by staff — call ahead.'))
+          r.eligibility ? el('p', { class: 'small muted' }, `Who qualifies: ${r.eligibility}`) : null,
+          r.hours ? el('p', { class: 'small muted' }, `Hours: ${r.hours}`) : null,
+          el('p', { class: 'small muted' }, r.last_verified ? `Verified ${fmtDate(r.last_verified)}` : 'Not yet verified by staff — call ahead.'),
+          r.crisis ? null : el('div', { class: 'actions' }, el('span'), referButton({ resource_id: r.id, resource_name: r.name, need: need || r.categories[0] })))
       )
     );
   }

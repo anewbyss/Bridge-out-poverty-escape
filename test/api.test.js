@@ -8,9 +8,18 @@ const { createApp } = require('../server/app');
 const PASSWORD = 'test-password';
 
 async function start(opts = {}) {
-  const app = createApp({ dbFile: ':memory:', staffPassword: PASSWORD, sessionSecret: 'secret', ...opts });
+  const app = createApp({ dbFile: ':memory:', staffPassword: PASSWORD, sessionSecret: 'secret', enforceAdmin2fa: false, ...opts });
   const server = http.createServer(app.handle);
   await new Promise((r) => server.listen(0, r));
+  // Close keep-alive sockets and the database too (Windows can't delete an open file).
+  const close = server.close.bind(server);
+  server.close = (cb) => {
+    server.closeAllConnections();
+    try {
+      app.db.close();
+    } catch {}
+    return close(cb);
+  };
   const base = `http://127.0.0.1:${server.address().port}`;
   let cookie = '';
   const req = async (method, path, body, headers = {}) => {
@@ -214,7 +223,8 @@ test('minimal and private searches, refresh, and validation', async (t) => {
 
   // Validate a connection.
   const ref = after[0];
-  assert.equal((await req('POST', `/api/staff/referrals/${ref.id}/validate`, { note: 'x' })).status, 400);
+  // With staff accounts, "confirmed by" defaults to the signed-in person.
+  assert.equal((await req('POST', `/api/staff/referrals/${ref.id}/validate`, { note: 'x' })).status, 200);
   assert.equal((await req('POST', `/api/staff/referrals/${ref.id}/validate`, { verified_by: 'BA', note: 'Called intake' })).status, 200);
   const v = (await req('GET', `/api/followup/${code}`)).data.referrals.find((r) => r.id === ref.id);
   assert.equal(v.status, 'received');
@@ -286,6 +296,7 @@ test('migrates a database created before age became optional', async (t) => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bop-'));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const file = path.join(dir, 'old.db');
+  let server;
   const old = new DatabaseSync(file);
   old.exec(`CREATE TABLE clients (id INTEGER PRIMARY KEY AUTOINCREMENT, ref_code TEXT NOT NULL UNIQUE,
     created_at TEXT NOT NULL DEFAULT (datetime('now')), source TEXT NOT NULL DEFAULT 'self', age INTEGER NOT NULL,
@@ -296,9 +307,11 @@ test('migrates a database created before age became optional', async (t) => {
     contact_ok INTEGER NOT NULL DEFAULT 0, contact_method TEXT, contact_value TEXT);
     INSERT INTO clients (ref_code, age) VALUES ('AAAA-BBBB', 19);`);
   old.close();
-  const { server, req } = await start({ dbFile: file });
-  t.after(() => server.close());
+  const started = await start({ dbFile: file });
+  server = started.server;
+  const { req } = started;
   const r = await req('POST', '/api/intake', { consent: true, needs: ['food'] });
   assert.equal(r.status, 200, JSON.stringify(r.data));
   assert.equal((await req('GET', '/api/followup/AAAA-BBBB')).status, 200);
+  server.close(); // before the temp folder is removed
 });

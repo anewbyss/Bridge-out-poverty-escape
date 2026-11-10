@@ -56,7 +56,7 @@ function fakeFetch(state) {
 
 async function start() {
   const state = { calls: [], usaBodies: [], page: MEMBER_PAGE };
-  const app = createApp({ dbFile: ':memory:', staffPassword: PASSWORD, sessionSecret: 's', discoveryFetch: fakeFetch(state) });
+  const app = createApp({ dbFile: ':memory:', staffPassword: PASSWORD, sessionSecret: 's', enforceAdmin2fa: false, discoveryFetch: fakeFetch(state) });
   const server = http.createServer(app.handle);
   await new Promise((r) => server.listen(0, r));
   const base = `http://127.0.0.1:${server.address().port}`;
@@ -181,7 +181,7 @@ test('staff add or dismiss leads, and add their own pages to watch', async (t) =
 test('program website changes are flagged for re-verification', async (t) => {
   let html = '<p>Open Mon–Fri</p><script>1</script>';
   const linkFetch = async () => ({ ok: true, status: 200, text: async () => html });
-  const app = createApp({ dbFile: ':memory:', staffPassword: PASSWORD, sessionSecret: 's', linkFetch });
+  const app = createApp({ dbFile: ':memory:', staffPassword: PASSWORD, sessionSecret: 's', enforceAdmin2fa: false, linkFetch });
   const server = http.createServer(app.handle);
   await new Promise((r) => server.listen(0, r));
   t.after(() => server.close());

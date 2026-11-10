@@ -53,7 +53,7 @@ async function start(liveOptions = {}) {
   ];
   await new Promise((r) => dir.server.listen(0, r));
   const provider = hsdsProvider({ url: `http://127.0.0.1:${dir.server.address().port}/`, label: 'Test 211' });
-  const app = createApp({ dbFile: ':memory:', staffPassword: PASSWORD, sessionSecret: 's', liveProviders: [provider], liveOptions: { timeoutMs: 200, ...liveOptions } });
+  const app = createApp({ dbFile: ':memory:', staffPassword: PASSWORD, sessionSecret: 's', enforceAdmin2fa: false, liveProviders: [provider], liveOptions: { timeoutMs: 200, ...liveOptions } });
   const server = http.createServer(app.handle);
   await new Promise((r) => server.listen(0, r));
   const base = `http://127.0.0.1:${server.address().port}`;
@@ -174,7 +174,7 @@ test('staff sync refreshes everything, keeps staff edits, and retires vanished l
 });
 
 test('sync explains when live lookup is not set up', async (t) => {
-  const app = createApp({ dbFile: ':memory:', staffPassword: PASSWORD, sessionSecret: 's' });
+  const app = createApp({ dbFile: ':memory:', staffPassword: PASSWORD, sessionSecret: 's', enforceAdmin2fa: false });
   assert.equal(app.live.enabled, false);
   const server = http.createServer(app.handle);
   await new Promise((r) => server.listen(0, r));

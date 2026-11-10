@@ -114,6 +114,74 @@ CREATE TABLE IF NOT EXISTS outcome_events (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- Staff accounts (see server/auth.js and server/roles.js).
+CREATE TABLE IF NOT EXISTS staff_users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  email TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
+  role TEXT NOT NULL,
+  programs TEXT NOT NULL DEFAULT '[]',
+  password_hash TEXT NOT NULL,
+  must_change_password INTEGER NOT NULL DEFAULT 0,
+  totp_secret TEXT,
+  totp_enabled INTEGER NOT NULL DEFAULT 0,
+  totp_last_step INTEGER,
+  session_version INTEGER NOT NULL DEFAULT 1,
+  active INTEGER NOT NULL DEFAULT 1,
+  failed_logins INTEGER NOT NULL DEFAULT 0,
+  locked_until TEXT,
+  last_login_at TEXT,
+  created_by INTEGER,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Who did what, for accountability. Never stores youth answers.
+CREATE TABLE IF NOT EXISTS audit_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  at TEXT NOT NULL DEFAULT (datetime('now')),
+  user_id INTEGER,
+  user_name TEXT,
+  action TEXT NOT NULL,
+  target TEXT,
+  detail TEXT
+);
+
+-- "Refer me" requests: a young person asks staff to reach out about a program.
+CREATE TABLE IF NOT EXISTS referral_requests (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  ref_code TEXT,
+  resource_id TEXT,
+  program_name TEXT,
+  need TEXT,
+  first_name TEXT,
+  age INTEGER,
+  county TEXT,
+  contact_method TEXT NOT NULL,
+  contact_value TEXT NOT NULL,
+  safe_to_message INTEGER NOT NULL DEFAULT 0,
+  best_time TEXT,
+  note TEXT,
+  adult_helper INTEGER NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'new',
+  staff_note TEXT,
+  handled_by TEXT,
+  handled_at TEXT,
+  emailed INTEGER NOT NULL DEFAULT 0,
+  email_error TEXT
+);
+
+-- Small key/value store for settings maintainers can change in the app.
+CREATE TABLE IF NOT EXISTS settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_by TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_requests_resource ON referral_requests(resource_id);
+CREATE INDEX IF NOT EXISTS idx_audit_at ON audit_log(at);
 CREATE INDEX IF NOT EXISTS idx_referrals_client ON referrals(client_id);
 CREATE INDEX IF NOT EXISTS idx_referrals_resource ON referrals(resource_id);
 CREATE INDEX IF NOT EXISTS idx_searches_client ON searches(client_id);
@@ -300,8 +368,34 @@ function syncSeed(db) {
   return mergeResources(db, readSeed()).added;
 }
 
+// Settings are stored as JSON so numbers and lists round-trip.
+function getSetting(db, key, fallback = null) {
+  const row = db.prepare('SELECT value FROM settings WHERE key = ?').get(key);
+  return row ? parseJson(row.value, fallback) : fallback;
+}
+
+function setSetting(db, key, value, by = null) {
+  db.prepare(
+    `INSERT INTO settings (key, value, updated_by) VALUES (?, ?, ?)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_by = excluded.updated_by, updated_at = datetime('now')`
+  ).run(key, JSON.stringify(value), by);
+}
+
+function audit(db, user, action, target = null, detail = null) {
+  db.prepare('INSERT INTO audit_log (user_id, user_name, action, target, detail) VALUES (?, ?, ?, ?, ?)').run(
+    user?.id ?? null,
+    user ? `${user.name} <${user.email}>` : null,
+    action,
+    target == null ? null : String(target).slice(0, 200),
+    detail == null ? null : (typeof detail === 'string' ? detail : JSON.stringify(detail)).slice(0, 2000)
+  );
+}
+
 module.exports = {
   open,
+  getSetting,
+  setSetting,
+  audit,
   syncSeed,
   readSeed,
   mergeResources,

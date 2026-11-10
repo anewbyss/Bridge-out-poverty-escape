@@ -129,7 +129,8 @@
             el('li', {}, 'show you programs that fit,'),
             el('li', {}, 'let you come back with your code and tell us how it went, and'),
             el('li', {}, 'show our community which needs aren’t being met and what gets in the way.')),
-          el('p', { class: 'small' }, 'Staff at our program can see your answers. We never sell your information. Reports only show totals. You can ask staff to delete your record any time using your code.')),
+          el('p', { class: 'small' }, 'Only staff who need it can see your answers, and every view is logged. We never sell your information. Reports only show totals. You can delete your record yourself any time on the Check in page using your code.'),
+          el('p', { class: 'small' }, el('strong', {}, 'Please know: '), 'staff must report it if a child under 18 is being abused or neglected (Oregon law). If you’re not sure, you can talk to a confidential line first: call or text 988.')),
         field('How much should we save?', null,
           el('div', { class: 'chips', role: 'radiogroup' },
             el('label', { class: 'chip', for: 'f-save-full' },
@@ -139,7 +140,10 @@
               el('input', { type: 'radio', name: 'save', value: 'private', id: 'f-save-private' }),
               'Private search — only keep my age, area, and needs')),
           el('p', { class: 'hint' }, 'Either way, we use all your answers to find matches, and you get a check-in code.')),
-        el('label', { class: 'chip' }, el('input', { type: 'checkbox', name: 'consent', id: 'f-consent' }), 'I understand and want to continue *'),
+        el('label', { class: 'chip consent' }, el('input', { type: 'checkbox', name: 'consent', id: 'f-consent' }),
+          el('span', {}, 'I’ve read the ', el('a', { href: '/privacy', target: '_blank', rel: 'noopener' }, 'Privacy Policy'), ' and ',
+            el('a', { href: '/terms', target: '_blank', rel: 'noopener' }, 'Terms'), ', I understand there is ',
+            el('a', { href: '/disclaimer', target: '_blank', rel: 'noopener' }, 'no guarantee of housing or services'), ', and I want to continue *')),
         el('br'), el('br'),
         el('label', { class: 'chip', id: 'contactChip' }, el('input', { type: 'checkbox', name: 'contact_ok', id: 'f-contact_ok' }), 'It’s okay for a staff member to contact me to check in'),
         el('div', { id: 'contactFields', class: 'hidden' },
@@ -157,6 +161,7 @@
         const e = [];
         if (!v.consent) e.push('Please check the box to continue.');
         if (v.contact_ok && (!v.contact_method || !v.contact_value)) e.push('Tell us how to reach you, or uncheck the contact box.');
+        if (v.contact_ok && v.age != null && v.age < 13 && !staffMode) e.push('For kids under 13, a staff member or trusted adult needs to share contact details. Uncheck the contact box to keep searching.');
         return e;
       },
     },
